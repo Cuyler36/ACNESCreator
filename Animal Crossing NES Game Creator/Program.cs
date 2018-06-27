@@ -36,8 +36,10 @@ namespace Animal_Crossing_NES_Game_Creator
                         }
                     }
 
-                    byte[] ACData = new byte[NESData.Length + 0x60];
-                    byte[] NameData = Encoding.ASCII.GetBytes("ZZ" + Name);
+                    List<byte> FinalData = new List<byte>();
+
+                    byte[] ACData = new byte[0x60];
+                    byte[] NameData = Encoding.ASCII.GetBytes("\0Z" + Name);
 
                     Array.Resize(ref NameData, 0x12);
 
@@ -49,14 +51,50 @@ namespace Animal_Crossing_NES_Game_Creator
                     // Set game can save flag
                     ACData[0x5C] = 0x80; // Upper bit is the "can save" flag
 
+                    // Create Save Banner/Comment Data
+                    List<byte> BannerData = new List<byte>();
+                    string Comment1 = "Animal Crossing Custom NES Save";
+                    string Comment2 = string.Format("{0} NES Save Data", args[0]);
+
+                    BannerData.AddRange(Encoding.ASCII.GetBytes(Comment1));
+                    while (BannerData.Count < 0x20)
+                    {
+                        BannerData.Add(0);
+                    }
+
+                    if (Comment2.Length > 32)
+                    {
+                        Comment2 = Comment2.Substring(0, 32);
+                    }
+
+                    BannerData.AddRange(Encoding.ASCII.GetBytes(Comment2));
+                    while (BannerData.Count < 0x40)
+                    {
+                        BannerData.Add(0);
+                    }
+
+                    BannerData.AddRange(GCI.DefaultIconData.Take(0x520));
+                    ushort BannerDataLength = (ushort)BannerData.Count;
+                    // Set Banner/Comment Data Size
+                    BitConverter.GetBytes(BannerDataLength.Reverse()).CopyTo(ACData, 0x5A);
+
+                    // Set Icon Type
+                    BitConverter.GetBytes(((ushort)IconFormats.Shared_CI8).Reverse()).CopyTo(ACData, 0x56);
+
+                    // Copy Header Data
+                    FinalData.AddRange(ACData);
+
+                    // Copy Banner Data
+                    FinalData.AddRange(BannerData);
+
                     // Copy the NES ROM Data
-                    NESData.CopyTo(ACData, 0x60);
+                    FinalData.AddRange(NESData);
 
                     // Create a new Blank GCI File
                     GCI NESGCIFile = new GCI
                     {
                         Comment2 = args[0] + " NES Game",
-                        Data = ACData
+                        Data = FinalData.ToArray()
                     };
                     // Set the File Name
                     NESGCIFile.Header.FileName = "DobutsunomoriP_F_" + args[0].Substring(0, 4).ToUpper();
@@ -67,6 +105,7 @@ namespace Animal_Crossing_NES_Game_Creator
                     {
                         byte[] Data = NESGCIFile.GetData();
                         SetChecksum(ref Data);
+                        PrintChecksum(Data);
                         Stream.Write(Data, 0, Data.Length);
                     }
 
@@ -89,20 +128,18 @@ namespace Animal_Crossing_NES_Game_Creator
                 Checksum += Data[i];
             }
 
-            Data[Data.Length - 1] = (byte)-Checksum;
+            Data[0x680] = (byte)-Checksum;
         }
 
-        internal static byte[] SetHasBannerImage(ref byte[] ACData, byte[] BannerData, byte[] NESData)
+        internal static void PrintChecksum(byte[] Data)
         {
-            ushort BannerSize = (ushort)BannerData.Length;
-            BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(ACData, 0x5A);
+            byte Checksum = 0;
+            for (int i = 0x40; i < Data.Length; i++) // Skip the header by adding 0x40
+            {
+                Checksum += Data[i];
+            }
 
-            List<byte> ConcatenatedData = new List<byte>();
-            ConcatenatedData.AddRange(ACData);
-            ConcatenatedData.AddRange(BannerData);
-            ConcatenatedData.AddRange(NESData);
-
-            return ConcatenatedData.ToArray();
+            Console.WriteLine("Checksum: 0x" + Checksum.ToString("X2"));
         }
     }
 }
