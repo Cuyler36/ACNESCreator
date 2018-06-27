@@ -93,7 +93,7 @@ namespace Animal_Crossing_NES_Game_Creator
         {
             ACData[0x1C] |= 0x80; // Upper bit is the banner image flag
             ushort BannerSize = (ushort)BannerData.Length;
-            BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(ACData, 0x1A);
+            BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(ACData, 0x5A);
 
             List<byte> ConcatenatedData = new List<byte>();
             ConcatenatedData.AddRange(ACData);
