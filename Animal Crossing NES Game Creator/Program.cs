@@ -46,6 +46,9 @@ namespace Animal_Crossing_NES_Game_Creator
                     ushort ResizedData = (ushort)(NESData.Length >> 4);
                     BitConverter.GetBytes(ResizedData.Reverse()).CopyTo(ACData, 0x52);
 
+                    // Set game can save flag
+                    ACData[0x5C] = 0x80; // Upper bit is the "can save" flag
+
                     // Copy the NES ROM Data
                     NESData.CopyTo(ACData, 0x60);
 
@@ -91,7 +94,6 @@ namespace Animal_Crossing_NES_Game_Creator
 
         internal static byte[] SetHasBannerImage(ref byte[] ACData, byte[] BannerData, byte[] NESData)
         {
-            ACData[0x1C] |= 0x80; // Upper bit is the banner image flag
             ushort BannerSize = (ushort)BannerData.Length;
             BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(ACData, 0x5A);
 
