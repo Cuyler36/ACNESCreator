@@ -2,22 +2,12 @@
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Collections.Generic;
 
 namespace Animal_Crossing_NES_Game_Creator
 {
     class Program
     {
-        internal static void SetChecksum(ref byte[] Data)
-        {
-            byte Checksum = 0;
-            for (int i = 0x40; i < Data.Length; i++) // Skip the header by adding 0x40
-            {
-                Checksum += Data[i];
-            }
-
-            Data[Data.Length - 1] = (byte)-Checksum;
-        }
-
         static void Main(string[] args)
         {
             if (args == null || args.Length < 1)
@@ -86,6 +76,31 @@ namespace Animal_Crossing_NES_Game_Creator
                 Console.WriteLine("The NES name must be four or more characters long!");
                 Console.ReadLine();
             }
+        }
+
+        internal static void SetChecksum(ref byte[] Data)
+        {
+            byte Checksum = 0;
+            for (int i = 0x40; i < Data.Length; i++) // Skip the header by adding 0x40
+            {
+                Checksum += Data[i];
+            }
+
+            Data[Data.Length - 1] = (byte)-Checksum;
+        }
+
+        internal static byte[] SetHasBannerImage(ref byte[] ACData, byte[] BannerData, byte[] NESData)
+        {
+            ACData[0x1C] |= 0x80; // Upper bit is the banner image flag
+            ushort BannerSize = (ushort)BannerData.Length;
+            BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(ACData, 0x1A);
+
+            List<byte> ConcatenatedData = new List<byte>();
+            ConcatenatedData.AddRange(ACData);
+            ConcatenatedData.AddRange(BannerData);
+            ConcatenatedData.AddRange(NESData);
+
+            return ConcatenatedData.ToArray();
         }
     }
 }
