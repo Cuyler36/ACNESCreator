@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Animal Crossing NES Game Creator")]
+[assembly: AssemblyTitle("ACNESCreator.CommandLine")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Animal Crossing NES Game Creator")]
+[assembly: AssemblyProduct("ACNESCreator.CommandLine")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("d04dc5ab-f68e-4c1d-8ea3-6dd782d3f3d0")]
+[assembly: Guid("3b9427c3-8abd-4311-9d64-6b61b0eb27d8")]
 
 // Version information for an assembly consists of the following four values:
 //

@@ -3,30 +3,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Animal_Crossing_NES_Game_Creator
+namespace ACNESCreator.Core
 {
     public enum BIFlags
     {
-        None =      0,
-        CI8 =       1,
-        RGB5A3 =    2,
-        Unknown =   3
+        None = 0,
+        CI8 = 1,
+        RGB5A3 = 2,
+        Unknown = 3
     }
 
     public enum IconFormats
     {
-        None =          0,
-        Shared_CI8 =    1,
-        RGB5A3 =        2,
-        Unique_CI8 =    3
+        None = 0,
+        Shared_CI8 = 1,
+        RGB5A3 = 2,
+        Unique_CI8 = 3
     }
 
     public enum AnimationSpeeds
     {
-        None =          0,
-        FourFrames =    1,
-        EightFrames =   2,
-        TwelveFrames =  3
+        None = 0,
+        FourFrames = 1,
+        EightFrames = 2,
+        TwelveFrames = 3
     }
 
     public enum Permissions
@@ -286,6 +286,12 @@ namespace Animal_Crossing_NES_Game_Creator
             }
 
             Data.AddRange(ImageData);
+
+            while (Data.Count < 0x680)
+            {
+                Data.Add(0); // Pad to 0x680
+            }
+
             Data.AddRange(this.Data);
 
             byte[] Output = Data.ToArray();
