@@ -6,6 +6,8 @@ namespace ACNESCreator.CommandLine
 {
     class Program
     {
+        readonly static string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
+
         static void Main(string[] args)
         {
             if (args == null || args.Length < 1)
@@ -18,21 +20,35 @@ namespace ACNESCreator.CommandLine
                 Console.WriteLine("Enter the path to the NES game to inject: ");
                 args = new string[2] { args[0], Console.ReadLine().Replace("\"", "") };
             }
+            if (args.Length < 3)
+            {
+                Console.WriteLine("Enter your Animal Crossing game's region (J for Japan, E for North America, P for Europe, and U for Austrailia:");
+                args = new string[3] { args[0], args[1], Console.ReadLine() };
+            }
 
             if (args[0].Length >= 4 && File.Exists(args[1]))
             {
-                NES NESFile = new NES(args[0], File.ReadAllBytes(args[1]), Region.NorthAmerica);
-
-                string OutputFile = Path.GetDirectoryName(args[1]) + "\\" + args[0] + "_InjectedData.gci";
-                using (var Stream = new FileStream(OutputFile, FileMode.OpenOrCreate))
+                int RegionIdx = Array.IndexOf(RegionCodes, args[2].ToUpper());
+                if (RegionIdx > -1)
                 {
-                    byte[] Data = NESFile.GenerateGCIFile();
-                    PrintChecksum(Data);
-                    Stream.Write(Data, 0, Data.Length);
-                }
+                    NES NESFile = new NES(args[0], File.ReadAllBytes(args[1]), (Region)RegionIdx);
 
-                Console.WriteLine("Successfully generated a GCI file with the NES rom in it!\nFile Location: " + OutputFile);
-                Console.ReadLine();
+                    string OutputFile = Path.GetDirectoryName(args[1]) + "\\" + args[0] + "_" + args[2].ToUpper() + "_InjectedData.gci";
+                    using (var Stream = new FileStream(OutputFile, FileMode.OpenOrCreate))
+                    {
+                        byte[] Data = NESFile.GenerateGCIFile();
+                        PrintChecksum(Data);
+                        Stream.Write(Data, 0, Data.Length);
+                    }
+
+                    Console.WriteLine("Successfully generated a GCI file with the NES rom in it!\nFile Location: " + OutputFile);
+                    Console.ReadLine();
+                }
+                else
+                {
+                    Console.WriteLine("The region code you entered couldn't be found!\r\nThe supported codes are: J, E, P, and U!");
+                    Console.ReadLine();
+                }
             }
             else
             {

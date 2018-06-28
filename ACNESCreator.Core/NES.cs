@@ -110,7 +110,7 @@ namespace ACNESCreator.Core
                 Padding = 0
             };
 
-            TagData = Utility.GetPaddedStringData(DefaultTagData, 0x10);
+            TagData = Utility.GetPaddedStringData(DefaultTagData, DefaultTagSize);
 
             BannerData = new Banner
             {
