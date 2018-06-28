@@ -48,10 +48,22 @@ namespace Animal_Crossing_NES_Game_Creator
                     ushort ResizedData = (ushort)(NESData.Length >> 4);
                     BitConverter.GetBytes(ResizedData.Reverse()).CopyTo(ACData, 0x52);
 
-                    // Set game can save flag
-                    ACData[0x5C] = 0x80; // Upper bit is the "can save" flag
+                    // Setup TagInfo Data Size
+                    List<byte> TagInfo = new List<byte>();
+                    TagInfo.AddRange(Encoding.ASCII.GetBytes("END\0"));
+                    while (TagInfo.Count % 16 != 0)
+                    {
+                        TagInfo.Add(0); // All entries must be aligned to 0x10 bytes
+                    }
 
-                    // Create Save Banner/Comment Data
+                    // Copy TagInfo Data Size
+                    ushort TagDataSize = (ushort)TagInfo.Count;
+                    BitConverter.GetBytes(TagDataSize.Reverse()).CopyTo(ACData, 0x54);
+
+                    // Set game can save flag
+                    ACData[0x5C] = (0 << 0) | (1 << 1) | (0 << 3) | (3 << 5) | (1 << 7); // Set unknown attribute to 0, IconInfo to use Internal Icon, BannerInfo to No Banner, CommentInfo to Copy whole, & CanSave to true
+
+                    // Create Save Comment Data
                     List<byte> BannerData = new List<byte>();
                     string Comment1 = "Animal Crossing Custom NES Save";
                     string Comment2 = string.Format("{0} NES Save Data", args[0]);
@@ -73,7 +85,7 @@ namespace Animal_Crossing_NES_Game_Creator
                         BannerData.Add(0);
                     }
 
-                    BannerData.AddRange(GCI.DefaultIconData.Take(0x520));
+                    //BannerData.AddRange(GCI.DefaultIconData.Take(0x520));
                     ushort BannerDataLength = (ushort)BannerData.Count;
                     // Set Banner/Comment Data Size
                     BitConverter.GetBytes(BannerDataLength.Reverse()).CopyTo(ACData, 0x5A);
@@ -83,6 +95,9 @@ namespace Animal_Crossing_NES_Game_Creator
 
                     // Copy Header Data
                     FinalData.AddRange(ACData);
+
+                    // Copy the TagInfo Data
+                    FinalData.AddRange(TagInfo);
 
                     // Copy Banner Data
                     FinalData.AddRange(BannerData);
