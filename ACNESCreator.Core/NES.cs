@@ -14,9 +14,8 @@ namespace ACNESCreator.Core
 
     public class NES
     {
-        const ushort DefaultTagSize = 0x10;
         const ushort DefaultBannerDataSize = 0x40;
-        const byte DefaultFlags1 = 0xE2;
+        const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
         const string DefaultTagData = "END\0";
         readonly string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
@@ -97,11 +96,13 @@ namespace ACNESCreator.Core
                 throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
             }
 
+            TagData = Utility.GetPaddedStringData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
+
             Header = new ACNESHeader
             {
                 Name = ROMName,
                 DataSize = (ushort)((ROMData.Length + 0xF) >> 4),
-                TagsSize = DefaultTagSize,
+                TagsSize = (ushort)((TagData.Length + 0xF) & ~0xF),
                 IconFormat = (ushort)IconFormats.Shared_CI8,
                 Unknown2 = 0,
                 BannerSize = DefaultBannerDataSize,
@@ -109,8 +110,6 @@ namespace ACNESCreator.Core
                 Flags2 = DefaultFlags2,
                 Padding = 0
             };
-
-            TagData = Utility.GetPaddedStringData(DefaultTagData, DefaultTagSize);
 
             BannerData = new Banner
             {
@@ -121,6 +120,12 @@ namespace ACNESCreator.Core
             ROM = ROMData;
 
             GameRegion = ACRegion;
+        }
+
+        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion) : this(ROMName, ROMData, ACRegion)
+        {
+            Header.Flags1 = (byte)((Header.Flags1 & ~(1 << 7)) | ((CanSave ? 1 : 0) << 7));
+            Console.WriteLine("Flags1: " + Header.Flags1.ToString("X2"));
         }
 
         internal bool IsNESImage(byte[] Data)

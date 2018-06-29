@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACNESCreator.Core", "ACNESC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACNESCreator.CommandLine", "ACNESCreator.CommandLine\ACNESCreator.CommandLine.csproj", "{3B9427C3-8ABD-4311-9D64-6B61B0EB27D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACNESCreator.FrontEnd", "ACNESCreator.FrontEnd\ACNESCreator.FrontEnd.csproj", "{B5F81458-A03D-4D8C-9E64-00DD97E07105}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{3B9427C3-8ABD-4311-9D64-6B61B0EB27D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B9427C3-8ABD-4311-9D64-6B61B0EB27D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B9427C3-8ABD-4311-9D64-6B61B0EB27D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5F81458-A03D-4D8C-9E64-00DD97E07105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5F81458-A03D-4D8C-9E64-00DD97E07105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5F81458-A03D-4D8C-9E64-00DD97E07105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5F81458-A03D-4D8C-9E64-00DD97E07105}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

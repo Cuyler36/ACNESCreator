@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace ACNESCreator.Core
 {
     public static class Utility
     {
-        public static byte[] GetPaddedStringData(string Input, int MaxLength, byte PaddingValue = 0)
+        public static byte[] GetPaddedData(byte[] Data, int MaxLength, byte PaddingValue = 0)
         {
-            byte[] Data = Encoding.ASCII.GetBytes(Input);
             int Length = Data.Length;
             if (Length == MaxLength)
             {
@@ -26,5 +24,8 @@ namespace ACNESCreator.Core
 
             return Data;
         }
+
+        public static byte[] GetPaddedStringData(string Input, int MaxLength, byte PaddingValue = 0)
+            => GetPaddedData(Encoding.ASCII.GetBytes(Input), MaxLength, PaddingValue);
     }
 }

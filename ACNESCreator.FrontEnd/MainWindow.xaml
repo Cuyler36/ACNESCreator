@@ -1,0 +1,26 @@
+﻿<Window x:Class="ACNESCreator.FrontEnd.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ACNESCreator.FrontEnd"
+        mc:Ignorable="d"
+        Title="Animal Crossing NES Save File Creator" Height="270" Width="368" ResizeMode="CanMinimize">
+    <Grid>
+        <Label x:Name="label" Content="Game Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label1" Content="NES ROM Location" HorizontalAlignment="Left" Margin="10,69,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label2" Content="Animal Crossing Region" HorizontalAlignment="Left" Margin="10,128,0,0" VerticalAlignment="Top"/>
+        <Label Content="Has Save File" HorizontalAlignment="Left" Margin="248,39,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="GameNameTextBox" HorizontalAlignment="Left" Height="23" Margin="10,41,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" MaxLength="16" Width="189"/>
+        <TextBox x:Name="LocationTextBox" HorizontalAlignment="Left" Height="23" Margin="10,100,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="252"/>
+        <ComboBox x:Name="RegionComboBox" HorizontalAlignment="Left" Margin="10,159,0,0" VerticalAlignment="Top" Width="100" IsReadOnly="True" SelectedIndex="0">
+            <ComboBoxItem Content="Japan"/>
+            <ComboBoxItem Content="North America"/>
+            <ComboBoxItem Content="Europe"/>
+            <ComboBoxItem Content="Australia"/>
+        </ComboBox>
+        <Button x:Name="BrowseButton" Content="Browse" HorizontalAlignment="Left" Margin="267,101,0,0" VerticalAlignment="Top" Width="75" Height="21" Click="BrowseButton_Click"/>
+        <CheckBox x:Name="CanSaveCheckBox" Content="" HorizontalAlignment="Left" Margin="332,45,0,0" VerticalAlignment="Top" />
+        <Button x:Name="GenerateButton" Content="Generate GCI File" HorizontalAlignment="Center" Margin="0,200,0,0" VerticalAlignment="Top" Width="180" Click="GenerateButton_Click"/>
+    </Grid>
+</Window>
