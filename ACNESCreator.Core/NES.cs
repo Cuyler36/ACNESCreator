@@ -14,6 +14,8 @@ namespace ACNESCreator.Core
 
     public class NES
     {
+        const int MaxROMSize = 0xFFFF0;
+
         const ushort DefaultBannerDataSize = 0x40;
         const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
@@ -94,6 +96,12 @@ namespace ACNESCreator.Core
             if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
             {
                 throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
+            }
+
+            if (ROMData.Length > MaxROMSize)
+            {
+                throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
+                    MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
             }
 
             TagData = Utility.GetPaddedStringData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
