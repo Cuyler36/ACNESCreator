@@ -25,12 +25,12 @@ namespace ACNESCreator.Core
         public class ACNESHeader
         {
             public byte Checksum = 0; // May not be the checksum byte.
-            public byte Unknown1 = 0; // May not be used.
+            public byte Unknown = 0; // May not be used.
             public string Name;
             public ushort DataSize;
             public ushort TagsSize;
             public ushort IconFormat;
-            public ushort Unknown2 = 0; // Not sure what this is. TODO: Figure it out.
+            public ushort IconFlags = 0; // IconFlags. Unsure what they do, but they're set in "SetupResIcon". Maybe they're not important? It's also passed as an argument to memcard_data_save, but appears to go unused.
             public ushort BannerSize;
             public byte Flags1;
             public byte Flags2;
@@ -41,12 +41,12 @@ namespace ACNESCreator.Core
                 byte[] Data = new byte[0x20];
 
                 Data[0] = Checksum;
-                Data[1] = Unknown1;
+                Data[1] = Unknown;
                 Utility.GetPaddedStringData(Name, 0x10, 0x20).CopyTo(Data, 2);
                 BitConverter.GetBytes(DataSize.Reverse()).CopyTo(Data, 0x12);
                 BitConverter.GetBytes(TagsSize.Reverse()).CopyTo(Data, 0x14);
                 BitConverter.GetBytes(IconFormat.Reverse()).CopyTo(Data, 0x16);
-                BitConverter.GetBytes(Unknown2.Reverse()).CopyTo(Data, 0x18);
+                BitConverter.GetBytes(IconFlags.Reverse()).CopyTo(Data, 0x18);
                 BitConverter.GetBytes(BannerSize.Reverse()).CopyTo(Data, 0x1A);
                 Data[0x1C] = Flags1;
                 Data[0x1D] = Flags2;
@@ -125,7 +125,7 @@ namespace ACNESCreator.Core
                 DataSize = (ushort)((ROMData.Length + 0xF) >> 4), // If the ROM is compressed, the size is retrieved from the Yaz0 header.
                 TagsSize = (ushort)((TagData.Length + 0xF) & ~0xF),
                 IconFormat = (ushort)IconFormats.Shared_CI8,
-                Unknown2 = 0,
+                IconFlags = 0,
                 BannerSize = DefaultBannerDataSize,
                 Flags1 = DefaultFlags1,
                 Flags2 = DefaultFlags2,
