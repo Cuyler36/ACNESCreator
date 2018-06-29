@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -68,173 +70,170 @@ namespace ACNESCreator.Core
             }
         }
 
-        private static uint Encode(byte[] Source, int Size, int Position, ref uint MatchPosition)
+        public static byte[] Compress(byte[] file)
         {
-            MatchPosition = 0;
+            List<byte> layoutBits = new List<byte>();
+            List<byte> dictionary = new List<byte>();
 
-            int startPosition = Position - 0x1000;
-            uint byteCount = 1;
-            int i = 0;
-            int j = 0;
+            List<byte> uncompressedData = new List<byte>();
+            List<int[]> compressedData = new List<int[]>();
 
-            if (startPosition < 0)
-                startPosition = 0;
+            int maxDictionarySize = 4096;
+            int minMatchLength = 3;
+            int maxMatchLength = 255 + 0x12;
+            int decompressedSize = 0;
 
-            for (i = startPosition; i < Position; i++)
+            for (int i = 0; i < file.Length; i++)
             {
-                for (j = 0; j < Size - Position; j++)
+
+                if (dictionary.Contains(file[i]))
                 {
-                    if (Source[i + j] != Source[j + Position])
-                        break;
-                }
+                    //compressed data
+                    int[] matches = Utility.FindAllMatches(ref dictionary, file[i]);
+                    int[] bestMatch = Utility.FindLargestMatch(ref dictionary, matches, ref file, i, maxMatchLength);
 
-                if (j > byteCount)
-                {
-                    byteCount = (uint)j;
-                    MatchPosition = (uint)i;
-                }
-            }
-
-            if (byteCount == 2)
-                byteCount = 1;
-
-            return byteCount;
-        }
-
-        private static bool previousFlag = false;
-        private static uint previousByteCount = 0;
-        private static uint previousMatchPosition = 0;
-
-        private static uint NintendoEncode(byte[] Source, int Size, int Position, ref uint MatchPosition)
-        {
-            uint byteCount = 1;
-
-            if (previousFlag == true)
-            {
-                MatchPosition = previousMatchPosition;
-                previousFlag = false;
-                return previousByteCount;
-            }
-
-            byteCount = Encode(Source, Size, Position, ref previousMatchPosition);
-            MatchPosition = previousMatchPosition;
-
-            if (byteCount >= 3)
-            {
-                previousByteCount = Encode(Source, Size, Position + 1, ref previousMatchPosition);
-
-                if (previousByteCount >= byteCount + 2)
-                {
-                    byteCount = 1;
-                    previousFlag = true;
-                }
-            }
-
-            return byteCount;
-        }
-
-        /*
-         * Compresses a file using Yaz0 compression
-         * 
-         * Params:
-         *  @Data = data array to compress
-         * 
-         * Returns:
-         *  @byte[] CompressedData = a byte array containing a file header ["Yaz0", Decompress Size] and the compressed data
-         */
-        public static byte[] Compress(byte[] Data)
-        {
-            int OutputBufferSize = 0;
-            int SourcePosition = 0;
-            int WritePosition = 0;
-            byte[] OutputBuffer = new byte[24];
-            MemoryStream OutputStream = new MemoryStream();
-
-            uint ValidBitCount = 0;
-            byte CurrentCodeByte = 0;
-            uint ByteCount = 0;
-            uint MatchPosition = 0;
-            byte A = 0, B = 0, C = 0;
-
-            while (SourcePosition < Data.Length)
-            {
-                ByteCount = 0;
-                MatchPosition = 0;
-
-                ByteCount = NintendoEncode(Data, Data.Length, SourcePosition, ref MatchPosition);
-
-                if (ByteCount < 3)
-                {
-                    OutputBuffer[WritePosition] = Data[SourcePosition];
-                    WritePosition++;
-                    SourcePosition++;
-                    CurrentCodeByte |= (byte)(0x80 >> (int)ValidBitCount);
-                }
-                else
-                {
-                    uint Distance = (uint)(SourcePosition - MatchPosition - 1);
-                    A = 0;
-                    B = 0;
-                    C = 0;
-
-                    if (ByteCount >= 0x12)
+                    if (bestMatch[1] >= minMatchLength)
                     {
-                        A = (byte)(0 | (Distance >> 8));
-                        B = (byte)(Distance & 0xFF);
-                        OutputBuffer[WritePosition++] = A;
-                        OutputBuffer[WritePosition++] = B;
+                        layoutBits.Add(0);
+                        bestMatch[0] = dictionary.Count - bestMatch[0];
 
-                        if (ByteCount > 0xFF + 0x12)
+                        for (int j = 0; j < bestMatch[1]; j++)
                         {
-                            ByteCount = 0xFF + 0x12;
+                            dictionary.Add(file[i + j]);
                         }
 
-                        C = (byte)(ByteCount - 0x12);
-                        OutputBuffer[WritePosition++] = C;
+                        i = i + bestMatch[1] - 1;
+
+                        compressedData.Add(bestMatch);
+                        decompressedSize += bestMatch[1];
                     }
                     else
                     {
-                        A = (byte)(((ByteCount - 2) << 4) | (Distance >> 8));
-                        B = (byte)(Distance & 0xFF);
-                        OutputBuffer[WritePosition++] = A;
-                        OutputBuffer[WritePosition++] = B;
+                        //uncompressed data
+                        layoutBits.Add(1);
+                        uncompressedData.Add(file[i]);
+                        dictionary.Add(file[i]);
+                        decompressedSize++;
                     }
-                    SourcePosition += (int)ByteCount;
                 }
-
-                ValidBitCount++;
-
-                if (ValidBitCount == 8)
+                else
                 {
-                    OutputStream.WriteByte(CurrentCodeByte);
-                    OutputStream.Write(OutputBuffer, 0, WritePosition);
-                    OutputBufferSize += WritePosition + 1;
-                    OutputStream.Position = OutputBufferSize;
+                    //uncompressed data
+                    layoutBits.Add(1);
+                    uncompressedData.Add(file[i]);
+                    dictionary.Add(file[i]);
+                    decompressedSize++;
+                }
 
-                    CurrentCodeByte = 0;
-                    ValidBitCount = 0;
-                    WritePosition = 0;
+                if (dictionary.Count > maxDictionarySize)
+                {
+                    int overflow = dictionary.Count - maxDictionarySize;
+                    dictionary.RemoveRange(0, overflow);
                 }
             }
 
-            if (ValidBitCount > 0)
-            {
-                OutputStream.WriteByte(CurrentCodeByte);
-                OutputStream.Write(OutputBuffer, 0, WritePosition);
-                OutputBufferSize += WritePosition + 1;
-                OutputStream.Position = OutputBufferSize;
+            return buildYAZ0CompressedBlock(ref layoutBits, ref uncompressedData, ref compressedData, decompressedSize);
+        }
 
-                CurrentCodeByte = 0;
-                ValidBitCount = 0;
-                WritePosition = 0;
+        public static byte[] buildYAZ0CompressedBlock(ref List<byte> layoutBits, ref List<byte> uncompressedData, ref List<int[]> offsetLengthPairs, int decompressedSize)
+        {
+            List<byte> finalYAZ0Block = new List<byte>();
+            List<byte> layoutBytes = new List<byte>();
+            List<byte> compressedDataBytes = new List<byte>();
+            List<byte> extendedLengthBytes = new List<byte>();
+
+            //add Yaz0 magic number
+            finalYAZ0Block.AddRange(Encoding.ASCII.GetBytes("Yaz0"));
+
+            byte[] decompressedSizeArray = BitConverter.GetBytes(decompressedSize);
+            Array.Reverse(decompressedSizeArray);
+            finalYAZ0Block.AddRange(decompressedSizeArray);
+
+            //add 8 0's per format specification
+            for (int i = 0; i < 8; i++)
+            {
+                finalYAZ0Block.Add(0);
             }
 
-            byte[] FileData = new byte[OutputStream.Length + 0x10];
-            Encoding.ASCII.GetBytes("Yaz0").CopyTo(FileData, 0);
-            BitConverter.GetBytes(Data.Length.Reverse()).ToArray().CopyTo(FileData, 4);
-            OutputStream.ToArray().CopyTo(FileData, 0x10);
+            //assemble layout bytes
+            while (layoutBits.Count > 0)
+            {
+                while (layoutBits.Count < 8)
+                {
+                    layoutBits.Add(0);
+                }
 
-            return FileData;
+                string layoutBitsString = layoutBits[0].ToString() + layoutBits[1].ToString() + layoutBits[2].ToString() + layoutBits[3].ToString()
+                        + layoutBits[4].ToString() + layoutBits[5].ToString() + layoutBits[6].ToString() + layoutBits[7].ToString();
+
+                byte[] layoutByteArray = new byte[1];
+                layoutByteArray[0] = Convert.ToByte(layoutBitsString, 2);
+                layoutBytes.Add(layoutByteArray[0]);
+                layoutBits.RemoveRange(0, (layoutBits.Count < 8) ? layoutBits.Count : 8);
+
+            }
+
+            //assemble offsetLength shorts
+            foreach (int[] offsetLengthPair in offsetLengthPairs)
+            {
+                //if < 18, set 4 bits -2 as matchLength
+                //if >= 18, set matchLength == 0, write length to new byte - 0x12
+
+                int adjustedOffset = offsetLengthPair[0];
+                int adjustedLength = (offsetLengthPair[1] >= 18) ? 0 : offsetLengthPair[1] - 2; //vital, 4 bit range is 0-15. Number must be at least 3 (if 2, when -2 is done, it will think it is 3 byte format), -2 is how it can store up to 17 without an extra byte because +2 will be added on decompression
+
+                if (adjustedLength == 0)
+                {
+                    extendedLengthBytes.Add((byte)(offsetLengthPair[1] - 18));
+                }
+
+                int compressedInt = ((adjustedLength << 12) | adjustedOffset - 1);
+
+                byte[] compressed2Byte = new byte[2];
+                compressed2Byte[0] = (byte)(compressedInt & 0XFF);
+                compressed2Byte[1] = (byte)((compressedInt >> 8) & 0xFF);
+
+                compressedDataBytes.Add(compressed2Byte[1]);
+                compressedDataBytes.Add(compressed2Byte[0]);
+            }
+
+            //add rest of file
+            for (int i = 0; i < layoutBytes.Count; i++)
+            {
+                finalYAZ0Block.Add(layoutBytes[i]);
+
+                BitArray arrayOfBits = new BitArray(new byte[1] { layoutBytes[i] });
+
+                for (int j = 7; ((j > -1) && ((uncompressedData.Count > 0) || (compressedDataBytes.Count > 0))); j--)
+                {
+                    if (arrayOfBits[j] == true)
+                    {
+                        finalYAZ0Block.Add(uncompressedData[0]);
+                        uncompressedData.RemoveAt(0);
+                    }
+                    else
+                    {
+                        if (compressedDataBytes.Count > 0)
+                        {
+                            int length = compressedDataBytes[0] >> 4;
+
+                            finalYAZ0Block.Add(compressedDataBytes[0]);
+                            finalYAZ0Block.Add(compressedDataBytes[1]);
+                            compressedDataBytes.RemoveRange(0, 2);
+
+                            if (length == 0)
+                            {
+                                finalYAZ0Block.Add(extendedLengthBytes[0]);
+                                extendedLengthBytes.RemoveAt(0);
+                            }
+                        }
+                    }
+                }
+
+
+            }
+
+            return finalYAZ0Block.ToArray();
         }
     }
 }
