@@ -14,7 +14,7 @@ namespace ACNESCreator.Core
 
     public class NES
     {
-        const int MaxROMSize = 0xFFFF0;
+        public const int MaxROMSize = 0xFFFF0;
 
         const ushort DefaultBannerDataSize = 0x40;
         const byte DefaultFlags1 = 0xEA;
@@ -86,8 +86,15 @@ namespace ACNESCreator.Core
 
         public readonly Region GameRegion;
 
-        public NES(string ROMName, byte[] ROMData, Region ACRegion)
+        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress)
         {
+            // If Data is Yaz0 compressed, uncompress it first
+            if (Yaz0.IsYaz0(ROMData))
+            {
+                ROMData = Yaz0.Decompress(ROMData);
+                Compress = true;
+            }
+
             if (!IsNESImage(ROMData))
             {
                 throw new ArgumentException("ROMData must be a valid NES image!");
@@ -96,6 +103,12 @@ namespace ACNESCreator.Core
             if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
             {
                 throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
+            }
+
+            // Compress the ROM if compression is requested
+            if (Compress)
+            {
+                ROMData = Yaz0.Compress(ROMData);
             }
 
             if (ROMData.Length > MaxROMSize)
@@ -109,7 +122,7 @@ namespace ACNESCreator.Core
             Header = new ACNESHeader
             {
                 Name = ROMName,
-                DataSize = (ushort)((ROMData.Length + 0xF) >> 4),
+                DataSize = (ushort)((ROMData.Length + 0xF) >> 4), // If the ROM is compressed, the size is retrieved from the Yaz0 header.
                 TagsSize = (ushort)((TagData.Length + 0xF) & ~0xF),
                 IconFormat = (ushort)IconFormats.Shared_CI8,
                 Unknown2 = 0,
@@ -130,10 +143,14 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
         }
 
-        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion) : this(ROMName, ROMData, ACRegion)
+        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress) : this(ROMName, ROMData, ACRegion, Compress)
         {
-            Header.Flags1 = (byte)((Header.Flags1 & ~(1 << 7)) | ((CanSave ? 1 : 0) << 7));
-            Console.WriteLine("Flags1: " + Header.Flags1.ToString("X2"));
+            if (!CanSave)
+            {
+                Header.Flags1 &= 1; // Only save the lowest bit, as everything else is related to saving.
+                Header.IconFormat = 0;
+                Header.BannerSize = 0;
+            }
         }
 
         internal bool IsNESImage(byte[] Data)
@@ -155,7 +172,10 @@ namespace ACNESCreator.Core
             List<byte> Data = new List<byte>();
             Data.AddRange(Header.GetData());
             Data.AddRange(TagData);
-            Data.AddRange(BannerData.GetData());
+            if ((Header.Flags1 & 0x80) == 0x80) // Only add banner if saving is enabled
+            {
+                Data.AddRange(BannerData.GetData());
+            }
             Data.AddRange(ROM);
 
             var BlankGCIFile = new GCI

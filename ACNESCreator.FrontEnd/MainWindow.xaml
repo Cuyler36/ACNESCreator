@@ -21,6 +21,9 @@
         </ComboBox>
         <Button x:Name="BrowseButton" Content="Browse" HorizontalAlignment="Left" Margin="267,101,0,0" VerticalAlignment="Top" Width="75" Height="21" Click="BrowseButton_Click"/>
         <CheckBox x:Name="CanSaveCheckBox" Content="" HorizontalAlignment="Left" Margin="332,45,0,0" VerticalAlignment="Top" />
-        <Button x:Name="GenerateButton" Content="Generate GCI File" HorizontalAlignment="Center" Margin="0,200,0,0" VerticalAlignment="Top" Width="180" Click="GenerateButton_Click"/>
+        <Button x:Name="GenerateButton" Content="Generate GCI File" HorizontalAlignment="Left" Margin="10,0,0,20" VerticalAlignment="Bottom" Height="20" Width="180" Click="GenerateButton_Click"/>
+        <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0, 0, 20, 20" Width="100" Height="20"/>
+        <Label Content="Compress ROM" HorizontalAlignment="Left" Margin="234,157,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="CompressCheckBox" Content="" HorizontalAlignment="Left" Margin="332,164,0,0" VerticalAlignment="Top" />
     </Grid>
 </Window>

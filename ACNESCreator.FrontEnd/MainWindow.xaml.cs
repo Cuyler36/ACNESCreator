@@ -25,8 +25,26 @@ namespace ACNESCreator.FrontEnd
         readonly static string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
         readonly OpenFileDialog SelectROMDialog = new OpenFileDialog
         {
-            Filter = "All Supported Files|*.nes;*.bin|NES ROM Files|*.nes|Binary Files|*.bin|All Files|*.*"
+            Filter = "All Supported Files|*.nes;*yaz0;*.bin|NES ROM Files|*.nes|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
         };
+
+
+        private bool _inProgress = false;
+        private bool InProgress
+        {
+            get => _inProgress;
+            set
+            {
+                GenerateButton.IsEnabled = !value;
+                RegionComboBox.IsEnabled = !value;
+                CanSaveCheckBox.IsEnabled = !value;
+                GameNameTextBox.IsEnabled = !value;
+                LocationTextBox.IsEnabled = !value;
+                CompressCheckBox.IsEnabled = !value;
+                ProgressBar.IsIndeterminate = value;
+                _inProgress = value;
+            }
+        }
 
         public MainWindow()
         {
@@ -44,11 +62,13 @@ namespace ACNESCreator.FrontEnd
             }
         }
 
-        private void GenerateButton_Click(object sender, RoutedEventArgs e)
+        private async void GenerateButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(GameNameTextBox.Text) && GameNameTextBox.Text.Length > 3 && !string.IsNullOrEmpty(LocationTextBox.Text)
+            if (!InProgress && !string.IsNullOrEmpty(GameNameTextBox.Text) && GameNameTextBox.Text.Length > 3 && !string.IsNullOrEmpty(LocationTextBox.Text)
                 && File.Exists(LocationTextBox.Text))
             {
+                InProgress = true;
+
                 string GameName = GameNameTextBox.Text;
                 string ROMLocation = LocationTextBox.Text;
                 bool HasSaveFile = CanSaveCheckBox.IsChecked.Value;
@@ -63,18 +83,34 @@ namespace ACNESCreator.FrontEnd
                 {
                     MessageBox.Show("The NES ROM File couldn't be read! Please make sure it isn't open in any other program, and double check the location!",
                         "ROM File Read Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    InProgress = false;
                     return;
+                }
+
+                if (Yaz0.IsYaz0(ROMData))
+                {
+                    CompressCheckBox.IsChecked = true;
+                }
+
+                bool Compress = !Yaz0.IsYaz0(ROMData) && (ROMData.Length > NES.MaxROMSize || CompressCheckBox.IsChecked.Value);
+
+                // If the ROM Size is greater than the max uncompressed size, notify the user that the ROM will be compressed and to wait patiently.
+                if (Compress)
+                {
+                    MessageBox.Show("The ROM file supplied will be compressed!\r\nThis may take some time," +
+                        " so please be patient!", "Compression Alert", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 NES NESFile = null;
                 try
                 {
-                    NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion);
+                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress); });
                 }
                 catch
                 {
                     MessageBox.Show("An error occured while generating the NES info! Please ensure that all your file location is correct, and try again!",
                         "NES File Creation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    InProgress = false;
                     return;
                 }
 
@@ -92,11 +128,13 @@ namespace ACNESCreator.FrontEnd
                 catch
                 {
                     MessageBox.Show("An error occured while saving the generated GCI file!", "GCI Creation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    InProgress = false;
                     return;
                 }
 
                 MessageBox.Show("The NES ROM was successfully injected! The file is located here:\r\n" + OutputLocation, "NES Save File Creation",
                     MessageBoxButton.OK, MessageBoxImage.Information);
+                InProgress = false;
             }
         }
     }
