@@ -162,13 +162,13 @@ namespace ACNESCreator.Core
                 {
                     layoutBits.Add(0);
                 }
+                byte B = 0;
+                for (int i = 0; i < 8; i++)
+                {
+                    B |= (byte)(layoutBits[i] << (7 - i));
+                }
 
-                string layoutBitsString = layoutBits[0].ToString() + layoutBits[1].ToString() + layoutBits[2].ToString() + layoutBits[3].ToString()
-                        + layoutBits[4].ToString() + layoutBits[5].ToString() + layoutBits[6].ToString() + layoutBits[7].ToString();
-
-                byte[] layoutByteArray = new byte[1];
-                layoutByteArray[0] = Convert.ToByte(layoutBitsString, 2);
-                layoutBytes.Add(layoutByteArray[0]);
+                layoutBytes.Add(B);
                 layoutBits.RemoveRange(0, (layoutBits.Count < 8) ? layoutBits.Count : 8);
 
             }
