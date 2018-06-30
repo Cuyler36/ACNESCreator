@@ -142,14 +142,11 @@ namespace ACNESCreator.Core
             List<byte> compressedDataBytes = new List<byte>();
             List<byte> extendedLengthBytes = new List<byte>();
 
-            //add Yaz0 magic number
+            //add Yaz0 magic number & decompressed file size
             finalYAZ0Block.AddRange(Encoding.ASCII.GetBytes("Yaz0"));
+            finalYAZ0Block.AddRange(BitConverter.GetBytes(decompressedSize.Reverse()));
 
-            byte[] decompressedSizeArray = BitConverter.GetBytes(decompressedSize);
-            Array.Reverse(decompressedSizeArray);
-            finalYAZ0Block.AddRange(decompressedSizeArray);
-
-            //add 8 0's per format specification
+            //add 8 zeros per format specification
             for (int i = 0; i < 8; i++)
             {
                 finalYAZ0Block.Add(0);
@@ -158,19 +155,14 @@ namespace ACNESCreator.Core
             //assemble layout bytes
             while (layoutBits.Count > 0)
             {
-                while (layoutBits.Count < 8)
-                {
-                    layoutBits.Add(0);
-                }
                 byte B = 0;
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < (8 > layoutBits.Count ? layoutBits.Count : 8); i++)
                 {
                     B |= (byte)(layoutBits[i] << (7 - i));
                 }
 
                 layoutBytes.Add(B);
                 layoutBits.RemoveRange(0, (layoutBits.Count < 8) ? layoutBits.Count : 8);
-
             }
 
             //assemble offsetLength shorts
