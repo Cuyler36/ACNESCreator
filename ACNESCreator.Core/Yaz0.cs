@@ -193,12 +193,11 @@ namespace ACNESCreator.Core
             for (int i = 0; i < layoutBytes.Count; i++)
             {
                 finalYAZ0Block.Add(layoutBytes[i]);
-
-                BitArray arrayOfBits = new BitArray(new byte[1] { layoutBytes[i] });
+                byte LayoutByte = layoutBytes[i];
 
                 for (int j = 7; ((j > -1) && ((uncompressedData.Count > 0) || (compressedDataBytes.Count > 0))); j--)
                 {
-                    if (arrayOfBits[j] == true)
+                    if (((LayoutByte >> j) & 1) == 1)
                     {
                         finalYAZ0Block.Add(uncompressedData[0]);
                         uncompressedData.RemoveAt(0);
@@ -221,8 +220,6 @@ namespace ACNESCreator.Core
                         }
                     }
                 }
-
-
             }
 
             return finalYAZ0Block.ToArray();
