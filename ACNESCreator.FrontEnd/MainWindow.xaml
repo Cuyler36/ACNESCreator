@@ -25,5 +25,7 @@
         <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0, 0, 20, 20" Width="100" Height="20"/>
         <Label Content="Compress ROM" HorizontalAlignment="Left" Margin="234,157,0,0" VerticalAlignment="Top"/>
         <CheckBox x:Name="CompressCheckBox" Content="" HorizontalAlignment="Left" Margin="332,164,0,0" VerticalAlignment="Top" />
+        <Label Content="Is Dōbutsu no Mori e+" HorizontalAlignment="Left" Margin="197,10,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="IsDnMe" Content="" HorizontalAlignment="Left" Margin="332,16,0,0" VerticalAlignment="Top" Unchecked="IsDnMe_Checked" Checked="IsDnMe_Checked" />
     </Grid>
 </Window>

@@ -36,14 +36,22 @@ namespace ACNESCreator.Core
             public byte Flags2;
             public ushort Padding; // 0 Padding? Doesn't appear to be used.
 
-            public byte[] GetData()
+            public byte[] GetData(Region GameRegion)
             {
                 byte[] Data = new byte[0x20];
 
                 Data[0] = Checksum;
                 Data[1] = Unknown;
-                Utility.GetPaddedStringData(Name, 0x10, 0x20).CopyTo(Data, 2);
-                BitConverter.GetBytes(DataSize.Reverse()).CopyTo(Data, 0x12);
+                if (GameRegion == Region.Japan) // Japan games have item strings that are 10 characters long, compared to the 16 characters in non-Japanese games.
+                {
+                    Utility.GetPaddedStringData(Name, 0xA, 0x20).CopyTo(Data, 2);
+                    BitConverter.GetBytes(DataSize.Reverse()).CopyTo(Data, 0xC);
+                }
+                else
+                {
+                    Utility.GetPaddedStringData(Name, 0x10, 0x20).CopyTo(Data, 2);
+                    BitConverter.GetBytes(DataSize.Reverse()).CopyTo(Data, 0x12);
+                }
                 BitConverter.GetBytes(TagsSize.Reverse()).CopyTo(Data, 0x14);
                 BitConverter.GetBytes(IconFormat.Reverse()).CopyTo(Data, 0x16);
                 BitConverter.GetBytes(IconFlags.Reverse()).CopyTo(Data, 0x18);
@@ -85,9 +93,13 @@ namespace ACNESCreator.Core
         public readonly byte[] ROM;
 
         public readonly Region GameRegion;
+        public readonly bool IsDnMe;
 
-        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress)
+        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe)
         {
+            // Is game Doubutsu no Mori e+?
+            IsDnMe = IsGameDnMe;
+
             // If Data is Yaz0 compressed, uncompress it first
             if (Yaz0.IsYaz0(ROMData))
             {
@@ -134,7 +146,7 @@ namespace ACNESCreator.Core
 
             BannerData = new Banner
             {
-                Title = "Animal Crossing",
+                Title = IsDnMe ? "Animal Forest e+" : "Animal Crossing",
                 Comment = ROMName + "\n" + "NES Save Data"
             };
 
@@ -143,7 +155,8 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
         }
 
-        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress) : this(ROMName, ROMData, ACRegion, Compress)
+        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe)
+            : this(ROMName, ROMData, ACRegion, Compress, IsDnMe)
         {
             if (!CanSave)
             {
@@ -170,7 +183,7 @@ namespace ACNESCreator.Core
         public byte[] GenerateGCIFile()
         {
             List<byte> Data = new List<byte>();
-            Data.AddRange(Header.GetData());
+            Data.AddRange(Header.GetData(GameRegion));
             Data.AddRange(TagData);
             if ((Header.Flags1 & 0x80) == 0x80) // Only add banner if saving is enabled
             {
@@ -181,12 +194,12 @@ namespace ACNESCreator.Core
             var BlankGCIFile = new GCI
             {
                 Data = Data.ToArray(),
-                Comment1 = "Animal Crossing",
+                Comment1 = IsDnMe ? "Animal Forest e+" : "Animal Crossing",
                 Comment2 = "NES Game:\n" + Header.Name,
             };
 
-            BlankGCIFile.Header.FileName = "DobutsunomoriP_F_" + Header.Name.Substring(0, 4).ToUpper();
-            BlankGCIFile.Header.GameCode = "GAF" + RegionCodes[(int)GameRegion];
+            BlankGCIFile.Header.FileName = (IsDnMe ? "DobutsunomoriE_F_" : "DobutsunomoriP_F_") + Header.Name.Substring(0, 4).ToUpper();
+            BlankGCIFile.Header.GameCode = (IsDnMe ? "GAE" : "GAF") + RegionCodes[(int)GameRegion];
 
             byte[] GCIData = BlankGCIFile.GetData();
             SetChecksum(ref GCIData);

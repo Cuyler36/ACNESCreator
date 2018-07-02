@@ -182,7 +182,7 @@ namespace ACNESCreator.Core
                 int compressedInt = ((adjustedLength << 12) | adjustedOffset - 1);
 
                 byte[] compressed2Byte = new byte[2];
-                compressed2Byte[0] = (byte)(compressedInt & 0XFF);
+                compressed2Byte[0] = (byte)(compressedInt & 0xFF);
                 compressed2Byte[1] = (byte)((compressedInt >> 8) & 0xFF);
 
                 compressedDataBytes.Add(compressed2Byte[1]);

@@ -1,17 +1,7 @@
 ﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.IO;
 using ACNESCreator.Core;
 
@@ -27,7 +17,6 @@ namespace ACNESCreator.FrontEnd
         {
             Filter = "All Supported Files|*.nes;*yaz0;*.bin|NES ROM Files|*.nes|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
         };
-
 
         private bool _inProgress = false;
         private bool InProgress
@@ -74,6 +63,7 @@ namespace ACNESCreator.FrontEnd
                 string ROMLocation = LocationTextBox.Text;
                 bool HasSaveFile = CanSaveCheckBox.IsChecked.Value;
                 Region ACRegion = (Region)RegionComboBox.SelectedIndex;
+                bool DnMe = IsDnMe.IsChecked.Value;
 
                 byte[] ROMData = null;
                 try
@@ -88,14 +78,15 @@ namespace ACNESCreator.FrontEnd
                     return;
                 }
 
-                if (Yaz0.IsYaz0(ROMData))
+                // Force compression on DnM+ & DnMe+ since it's size offset is 0xC instead of 0x12. This ensures that the size is retrieved from the Yaz0 header.
+                if (Yaz0.IsYaz0(ROMData) || DnMe || ROMData.Length > NES.MaxROMSize)
                 {
                     CompressCheckBox.IsChecked = true;
                 }
 
-                bool Compress = !Yaz0.IsYaz0(ROMData) && (ROMData.Length > NES.MaxROMSize || CompressCheckBox.IsChecked.Value);
+                bool Compress = !Yaz0.IsYaz0(ROMData) && CompressCheckBox.IsChecked.Value;
 
-                // If the ROM Size is greater than the max uncompressed size, notify the user that the ROM will be compressed and to wait patiently.
+                // If the ROM needs to be compressed, notify the user that it will be compressed and to wait patiently.
                 if (Compress)
                 {
                     MessageBox.Show("The ROM file supplied will be compressed!\r\nThis may take some time," +
@@ -105,7 +96,7 @@ namespace ACNESCreator.FrontEnd
                 NES NESFile = null;
                 try
                 {
-                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress); });
+                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress, DnMe); });
                 }
                 catch
                 {
@@ -137,6 +128,13 @@ namespace ACNESCreator.FrontEnd
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 InProgress = false;
             }
+        }
+
+        private void IsDnMe_Checked(object sender, RoutedEventArgs e)
+        {
+            RegionComboBox.IsEnabled = !IsDnMe.IsChecked.Value;
+            RegionComboBox.SelectedIndex = 0;
+            GameNameTextBox.MaxLength = RegionComboBox.IsEnabled ? 16 : 10;
         }
     }
 }

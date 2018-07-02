@@ -31,7 +31,7 @@ namespace ACNESCreator.CommandLine
                 int RegionIdx = Array.IndexOf(RegionCodes, args[2].ToUpper());
                 if (RegionIdx > -1)
                 {
-                    NES NESFile = new NES(args[0], File.ReadAllBytes(args[1]), (Region)RegionIdx, false);
+                    NES NESFile = new NES(args[0], File.ReadAllBytes(args[1]), (Region)RegionIdx, false, false);
 
                     string OutputFile = Path.GetDirectoryName(args[1]) + "\\" + args[0] + "_" + args[2].ToUpper() + "_InjectedData.gci";
                     using (var Stream = new FileStream(OutputFile, FileMode.OpenOrCreate))
