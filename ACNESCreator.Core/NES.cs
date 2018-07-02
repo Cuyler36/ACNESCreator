@@ -16,7 +16,6 @@ namespace ACNESCreator.Core
     {
         public const int MaxROMSize = 0xFFFF0;
 
-        const ushort DefaultBannerDataSize = 0x40;
         const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
         const string DefaultTagData = "END\0";
@@ -85,6 +84,9 @@ namespace ACNESCreator.Core
 
                 return Data.ToArray();
             }
+
+            public ushort GetSize()
+                => (ushort)(((!string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Comment)) ? 0x40 : 0) + BannerData.Length + IconData.Length);
         }
 
         public readonly ACNESHeader Header;
@@ -131,6 +133,12 @@ namespace ACNESCreator.Core
 
             TagData = Utility.GetPaddedStringData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
 
+            BannerData = new Banner
+            {
+                Title = IsDnMe ? "Animal Forest e+" : "Animal Crossing",
+                Comment = ROMName + "\n" + "NES Save Data"
+            };
+
             Header = new ACNESHeader
             {
                 Name = ROMName,
@@ -138,16 +146,10 @@ namespace ACNESCreator.Core
                 TagsSize = (ushort)((TagData.Length + 0xF) & ~0xF),
                 IconFormat = (ushort)IconFormats.Shared_CI8,
                 IconFlags = 0,
-                BannerSize = DefaultBannerDataSize,
+                BannerSize = (ushort)((BannerData.GetSize() + 0xF) & ~0xF),
                 Flags1 = DefaultFlags1,
                 Flags2 = DefaultFlags2,
                 Padding = 0
-            };
-
-            BannerData = new Banner
-            {
-                Title = IsDnMe ? "Animal Forest e+" : "Animal Crossing",
-                Comment = ROMName + "\n" + "NES Save Data"
             };
 
             ROM = ROMData;

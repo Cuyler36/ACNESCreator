@@ -79,7 +79,7 @@ namespace ACNESCreator.FrontEnd
                 }
 
                 // Force compression on DnM+ & DnMe+ since it's size offset is 0xC instead of 0x12. This ensures that the size is retrieved from the Yaz0 header.
-                if (Yaz0.IsYaz0(ROMData) || DnMe || ROMData.Length > NES.MaxROMSize)
+                if (Yaz0.IsYaz0(ROMData) || ROMData.Length > NES.MaxROMSize)
                 {
                     CompressCheckBox.IsChecked = true;
                 }
