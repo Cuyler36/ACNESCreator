@@ -96,9 +96,13 @@ namespace ACNESCreator.Core
 
         public readonly Region GameRegion;
         public readonly bool IsDnMe;
+        public readonly byte[] SaveIconData;
 
-        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe)
+        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe, byte[] IconData = null)
         {
+            // Set the icon
+            SaveIconData = IconData ?? GCI.DefaultIconData;
+
             // Is game Doubutsu no Mori e+?
             IsDnMe = IsGameDnMe;
 
@@ -157,8 +161,8 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
         }
 
-        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe)
-            : this(ROMName, ROMData, ACRegion, Compress, IsDnMe)
+        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
+            : this(ROMName, ROMData, ACRegion, Compress, IsDnMe, IconData)
         {
             if (!CanSave)
             {
@@ -193,7 +197,7 @@ namespace ACNESCreator.Core
             }
             Data.AddRange(ROM);
 
-            var BlankGCIFile = new GCI
+            var BlankGCIFile = new GCI(SaveIconData)
             {
                 Data = Data.ToArray(),
                 Comment1 = IsDnMe ? "Animal Forest e+" : "Animal Crossing",

@@ -10,7 +10,7 @@
         <Label x:Name="label" Content="Game Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label1" Content="NES ROM Location" HorizontalAlignment="Left" Margin="10,69,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label2" Content="Animal Crossing Region" HorizontalAlignment="Left" Margin="10,128,0,0" VerticalAlignment="Top"/>
-        <Label Content="Has Save File" HorizontalAlignment="Left" Margin="248,39,0,0" VerticalAlignment="Top"/>
+        <Label Content="Has Save File" HorizontalAlignment="Left" Margin="248,69,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="GameNameTextBox" HorizontalAlignment="Left" Height="23" Margin="10,41,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" MaxLength="16" Width="189"/>
         <TextBox x:Name="LocationTextBox" HorizontalAlignment="Left" Height="23" Margin="10,100,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="252"/>
         <ComboBox x:Name="RegionComboBox" HorizontalAlignment="Left" Margin="10,159,0,0" VerticalAlignment="Top" Width="110" IsReadOnly="True" SelectedIndex="0">
@@ -20,12 +20,20 @@
             <ComboBoxItem Content="Australia"/>
         </ComboBox>
         <Button x:Name="BrowseButton" Content="Browse" HorizontalAlignment="Left" Margin="267,101,0,0" VerticalAlignment="Top" Width="75" Height="21" Click="BrowseButton_Click"/>
-        <CheckBox x:Name="CanSaveCheckBox" Content="" HorizontalAlignment="Left" Margin="332,45,0,0" VerticalAlignment="Top" />
+        <CheckBox x:Name="CanSaveCheckBox" Content="" HorizontalAlignment="Left" Margin="332,76,0,0" VerticalAlignment="Top" />
         <Button x:Name="GenerateButton" Content="Generate GCI File" HorizontalAlignment="Left" Margin="10,0,0,20" VerticalAlignment="Bottom" Height="20" Width="180" Click="GenerateButton_Click"/>
         <ProgressBar x:Name="ProgressBar" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0, 0, 20, 20" Width="100" Height="20"/>
         <Label Content="Compress ROM" HorizontalAlignment="Left" Margin="234,157,0,0" VerticalAlignment="Top"/>
         <CheckBox x:Name="CompressCheckBox" Content="" HorizontalAlignment="Left" Margin="332,164,0,0" VerticalAlignment="Top" />
-        <Label Content="Is Dōbutsu no Mori e+" HorizontalAlignment="Left" Margin="197,10,0,0" VerticalAlignment="Top"/>
-        <CheckBox x:Name="IsDnMe" Content="" HorizontalAlignment="Left" Margin="332,16,0,0" VerticalAlignment="Top" Unchecked="IsDnMe_Checked" Checked="IsDnMe_Checked" />
+        <Label Content="Is Dōbutsu no Mori e+" HorizontalAlignment="Left" Margin="202,128,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="IsDnMe" Content="" HorizontalAlignment="Left" Margin="332,135,0,0" VerticalAlignment="Top" Unchecked="IsDnMe_Checked" Checked="IsDnMe_Checked" />
+        <Image x:Name="IconImage" HorizontalAlignment="Left" Height="32" Margin="300,32,0,0" VerticalAlignment="Top" Width="32">
+            <Image.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Import" Click="Import_Click"/>
+                </ContextMenu>
+            </Image.ContextMenu>
+        </Image>
+        <Label Content="Icon" HorizontalAlignment="Left" Margin="299,10,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

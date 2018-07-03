@@ -36,7 +36,7 @@ namespace ACNESCreator.Core
         NoMove = 0b1000  // 8
     }
 
-    class GCI
+    public class GCI
     {
         #region DEFAULT ICON IMAGE DATA
         public static readonly byte[] DefaultIconData = new byte[]
@@ -132,7 +132,11 @@ namespace ACNESCreator.Core
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         };
         #endregion
 
@@ -163,7 +167,7 @@ namespace ACNESCreator.Core
 
         private byte[] _data;
 
-        internal class GCIHeader
+        public sealed class GCIHeader
         {
             public string GameCode;
             public string MakerCode;
@@ -242,26 +246,26 @@ namespace ACNESCreator.Core
             }
         }
 
-        public GCI(byte[] Data)
-        {
-            Header = new GCIHeader(Data);
-            Comment1 = Encoding.GetEncoding("shift-jis").GetString(Data, Header.CommentOffset + GCIHeaderSize, 32);
-            Comment2 = Encoding.GetEncoding("shift-jis").GetString(Data, Header.CommentOffset + GCIHeaderSize + 0x20, 32);
-            if ((IconFormats)Header.IconFormat == IconFormats.Shared_CI8)
-            {
-                ImageData = Data.Skip(Header.ImageOffset + GCIHeaderSize).Take(0x5C0).ToArray();
-            }
-
-            this.Data = Data.Skip(0x640).ToArray();
-        }
-
-        public GCI()
+        public GCI(byte[] IconData = null)
         {
             Header = new GCIHeader();
             Comment1 = "Animal Crossing";
             Comment2 = "NES Game";
-            ImageData = DefaultIconData;
+            ImageData = IconData ?? DefaultIconData;
             Data = new byte[0];
+        }
+
+        public GCI(byte[] HeaderData, byte[] CommentData, byte[] BannerData, byte[] IconData)
+        {
+            Header = new GCIHeader(HeaderData);
+            Comment1 = Encoding.GetEncoding("shift-jis").GetString(CommentData, 0, 32);
+            Comment2 = Encoding.GetEncoding("shift-jis").GetString(CommentData, 0x20, 32);
+            if ((IconFormats)Header.IconFormat == IconFormats.Shared_CI8)
+            {
+                ImageData = IconData.Skip(Header.ImageOffset + GCIHeaderSize).Take(0x600).ToArray();
+            }
+
+            Data = Data.Skip(0x640).ToArray();
         }
 
         public byte[] GetData()

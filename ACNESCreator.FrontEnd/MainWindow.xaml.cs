@@ -3,7 +3,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.IO;
+using System.Windows.Media.Imaging;
+using System.Linq;
+using System;
+using System.Windows.Media;
+using System.Collections.Generic;
 using ACNESCreator.Core;
+using GCNToolKit.Formats.Images;
+using GCNToolKit.Formats.Colors;
 
 namespace ACNESCreator.FrontEnd
 {
@@ -16,6 +23,10 @@ namespace ACNESCreator.FrontEnd
         readonly OpenFileDialog SelectROMDialog = new OpenFileDialog
         {
             Filter = "All Supported Files|*.nes;*yaz0;*.bin|NES ROM Files|*.nes|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
+        };
+        readonly OpenFileDialog SelectIconImageDialog = new OpenFileDialog
+        {
+            Filter = "PNG Files|*.png"
         };
 
         private bool _inProgress = false;
@@ -36,9 +47,34 @@ namespace ACNESCreator.FrontEnd
             }
         }
 
+        private byte[] IconData;
+
         public MainWindow()
         {
             InitializeComponent();
+            
+            IconData = GCI.DefaultIconData;
+            RefreshIconImage();
+        }
+
+        private void RefreshIconImage()
+        {
+            ushort[] Palette = new ushort[256];
+            for (int i = 0; i < 256; i++)
+            {
+                Palette[i] = BitConverter.ToUInt16(IconData, 32 * 32 + i * 2).Reverse();
+            }
+
+            IconImage.Source = GetIconImage(IconData.Take(32 * 32).ToArray(), Palette);
+        }
+
+        private static BitmapSource GetIconImage(byte[] IconData, ushort[] Palette)
+        {
+            int[] IconImageData = C8.DecodeC8(IconData, Palette, 32, 32);
+            byte[] IconImageDataArray = new byte[IconImageData.Length * 4];
+            Buffer.BlockCopy(IconImageData, 0, IconImageDataArray, 0, IconImageDataArray.Length);
+
+            return BitmapSource.Create(32, 32, 96, 96, PixelFormats.Bgra32, null, IconImageDataArray, 4 * 32);
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
@@ -96,7 +132,7 @@ namespace ACNESCreator.FrontEnd
                 NES NESFile = null;
                 try
                 {
-                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress, DnMe); });
+                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress, DnMe, IconData); });
                 }
                 catch
                 {
@@ -135,6 +171,70 @@ namespace ACNESCreator.FrontEnd
             RegionComboBox.IsEnabled = !IsDnMe.IsChecked.Value;
             RegionComboBox.SelectedIndex = 0;
             GameNameTextBox.MaxLength = RegionComboBox.IsEnabled ? 16 : 10;
+        }
+
+        private void Import_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectIconImageDialog.ShowDialog().Value && File.Exists(SelectIconImageDialog.FileName))
+            {
+                try
+                {
+                    BitmapImage Img = new BitmapImage();
+                    Img.BeginInit();
+                    Img.UriSource = new Uri(SelectIconImageDialog.FileName);
+                    Img.EndInit();
+
+                    if (Img.PixelWidth == 32 && Img.PixelHeight == 32)
+                    {
+                        //IconImage.Source = Img;
+
+                        // Get the image data
+                        byte[] PixelData = new byte[4 * 32 * 32];
+                        Img.CopyPixels(PixelData, 4 * 32, 0);
+
+                        int[] ImageData = new int[32 * 32];
+                        Buffer.BlockCopy(PixelData, 0, ImageData, 0, PixelData.Length);
+
+                        // Convert it to C8 format
+                        IconData = new byte[0x600];
+                        List<ushort> PaletteList = new List<ushort>();
+
+                        for (int i = 0, idx = 0; i < 32 * 32; i++, idx += 4)
+                        {
+                            ushort RGB5A3Color = RGB5A3.ToRGB5A3(PixelData[idx + 3], PixelData[idx + 2], PixelData[idx + 1], PixelData[idx]);
+                            if (!PaletteList.Contains(RGB5A3Color))
+                            {
+                                PaletteList.Add(RGB5A3Color);
+                            }
+                        }
+
+                        ushort[] Palette = PaletteList.ToArray();
+                        if (Palette.Length > 256)
+                        {
+                            Array.Resize(ref Palette, 256);
+                        }
+
+                        C8.EncodeC8(ImageData, Palette, 32, 32).CopyTo(IconData, 0);
+
+                        for (int i = 0; i < PaletteList.Count; i++)
+                        {
+                            BitConverter.GetBytes(PaletteList[i].Reverse()).CopyTo(IconData, 0x400 + i * 2);
+                        }
+
+                        // Refresh the Icon Image
+                        RefreshIconImage();
+                    }
+                    else
+                    {
+                        MessageBox.Show("The icon you selected is not 32x32 pixels! Please resize it to that and try again.", "Icon Import Error", MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                }
+                catch
+                {
+                    MessageBox.Show("The icon you selected could not be imported! Please try again.", "Icon Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
     }
 }

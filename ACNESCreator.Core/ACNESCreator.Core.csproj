@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;net46</TargetFrameworks>
+    <TargetFramework>net461</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="GCNToolKit">
+      <HintPath>GCNToolKit.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 </Project>
