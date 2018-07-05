@@ -18,8 +18,14 @@ namespace ACNESCreator.Core
 
         const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
-        const string DefaultTagData = "END\0";
-        readonly string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
+        static readonly byte[] DefaultTagData = Encoding.ASCII.GetBytes("TAG\0" + "GNO\0x1F" + "END\0");
+        static readonly string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
+        static readonly string[] TagList = new string[]
+        {
+            "END", "VEQ", "VNE", "GID", "GNM", "CPN", "OFS", "HSC",
+            "GNO", "BBR", "QDS", "SPE", "ISZ", "IFM", "REM", "TCS",
+            "ICS", "ESZ", "FIL", "ROM", "MOV", "NHD", "DIF", "PAT"
+        };
 
         public class ACNESHeader
         {
@@ -90,7 +96,7 @@ namespace ACNESCreator.Core
         }
 
         public readonly ACNESHeader Header;
-        public readonly byte[] TagData;
+        public byte[] TagData { get; internal set; }
         public readonly Banner BannerData;
         public readonly byte[] ROM;
 
@@ -135,7 +141,7 @@ namespace ACNESCreator.Core
                     MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
             }
 
-            TagData = Utility.GetPaddedStringData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
+            TagData = Utility.GetPaddedData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
 
             BannerData = new Banner
             {
@@ -157,8 +163,10 @@ namespace ACNESCreator.Core
             };
 
             ROM = ROMData;
-
             GameRegion = ACRegion;
+
+            // Generate custom tag data if possible
+            GenerateDefaultTagData(ROMName);
         }
 
         public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
@@ -184,6 +192,69 @@ namespace ACNESCreator.Core
             }
 
             Data[0x680] = (byte)-Checksum;
+        }
+
+        internal void GenerateDefaultTagData(string GameName)
+        {
+            if (GameName.Length > 1)
+            {
+                GameName = GameName.Trim().ToUpper();
+                Dictionary<string, byte[]> Tags = new Dictionary<string, byte[]>
+                {
+                    { "GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1)) },
+                    { "GNM", Encoding.ASCII.GetBytes(GameName) },
+                    { "GNO", new byte[1] { 0x1F } },
+                    { "END", new byte[0] }
+                };
+
+                GenerateTagData(Tags);
+            }
+        }
+
+        public void GenerateTagData(Dictionary<string, byte[]> Tags)
+        {
+            bool HasEND = false;
+
+            // The first tag is printed and then ignored, so we can put whatever we want here
+            string TagString = "TAG\0";
+            foreach (var TagInfo in Tags)
+            {
+                // Ensure the tag is capitalized
+                string Tag = TagInfo.Key.ToUpper();
+
+                // Confirm the tag is valid
+                if (Array.IndexOf(TagList, Tag) > -1)
+                {
+                    // Add the tag
+                    TagString += Tag;
+
+                    if (Tag == "END")
+                    {
+                        HasEND = true;
+                    }
+
+                    // Add the tag data length
+                    TagString += (char)(TagInfo.Value.Length & 0xFF);
+
+                    // Add the tag data
+                    for (int i = 0; i < TagInfo.Value.Length; i++)
+                    {
+                        TagString += (char)TagInfo.Value[i];
+                    }
+                }
+            }
+
+            // Ensure that an END tag is present so the parser will stop
+            if (!HasEND)
+            {
+                TagString += "END\0";
+            }
+
+            byte[] TagBinaryData = Encoding.ASCII.GetBytes(TagString);
+            TagBinaryData = Utility.GetPaddedData(TagBinaryData, (TagBinaryData.Length + 0xF) & ~0xF);
+
+            Header.TagsSize = (ushort)TagBinaryData.Length;
+            TagData = TagBinaryData;
         }
 
         public byte[] GenerateGCIFile()
