@@ -134,11 +134,13 @@ namespace ACNESCreator.FrontEnd
                 {
                     await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress, DnMe, IconData); });
                 }
-                catch
+                catch (Exception ex)
                 {
                     MessageBox.Show("An error occured while generating the NES info! Please ensure that all your file location is correct, and try again!",
                         "NES File Creation Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     InProgress = false;
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
                     return;
                 }
 
@@ -153,10 +155,12 @@ namespace ACNESCreator.FrontEnd
                         Stream.Flush();
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     MessageBox.Show("An error occured while saving the generated GCI file!", "GCI Creation Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     InProgress = false;
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
                     return;
                 }
 

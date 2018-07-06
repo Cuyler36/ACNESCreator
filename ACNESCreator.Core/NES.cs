@@ -113,7 +113,7 @@ namespace ACNESCreator.Core
             // Is game Doubutsu no Mori e+?
             IsDnMe = IsGameDnMe;
 
-            if (IsNESImage(ROMData))
+            if (true || IsNESImage(ROMData))
             {
                 // If Data is Yaz0 compressed, uncompress it first
                 if (Yaz0.IsYaz0(ROMData))
@@ -133,7 +133,7 @@ namespace ACNESCreator.Core
                     ROMData = Yaz0.Compress(ROMData);
                 }
 
-                if (ROMData.Length > MaxROMSize)
+                if (!Compress && ROMData.Length > MaxROMSize)
                 {
                     throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
                         MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
