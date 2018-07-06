@@ -15,6 +15,7 @@ namespace ACNESCreator.Core
     public class NES
     {
         public const int MaxROMSize = 0xFFFF0;
+        const uint PatchAdjustOffset = 0x7F800000;
 
         const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
@@ -112,33 +113,31 @@ namespace ACNESCreator.Core
             // Is game Doubutsu no Mori e+?
             IsDnMe = IsGameDnMe;
 
-            // If Data is Yaz0 compressed, uncompress it first
-            if (Yaz0.IsYaz0(ROMData))
+            if (IsNESImage(ROMData))
             {
-                ROMData = Yaz0.Decompress(ROMData);
-                Compress = true;
-            }
+                // If Data is Yaz0 compressed, uncompress it first
+                if (Yaz0.IsYaz0(ROMData))
+                {
+                    ROMData = Yaz0.Decompress(ROMData);
+                    Compress = true;
+                }
 
-            if (!IsNESImage(ROMData))
-            {
-                throw new ArgumentException("ROMData must be a valid NES image!");
-            }
+                if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
+                {
+                    throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
+                }
 
-            if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
-            {
-                throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
-            }
+                // Compress the ROM if compression is requested
+                if (Compress)
+                {
+                    ROMData = Yaz0.Compress(ROMData);
+                }
 
-            // Compress the ROM if compression is requested
-            if (Compress)
-            {
-                ROMData = Yaz0.Compress(ROMData);
-            }
-
-            if (ROMData.Length > MaxROMSize)
-            {
-                throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
-                    MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
+                if (ROMData.Length > MaxROMSize)
+                {
+                    throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
+                        MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
+                }
             }
 
             TagData = Utility.GetPaddedData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
@@ -166,7 +165,7 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
 
             // Generate custom tag data if possible
-            GenerateDefaultTagData(ROMName);
+            GenerateDefaultTagData(ROMName, IsNESImage(ROMData));
         }
 
         public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
@@ -194,29 +193,70 @@ namespace ACNESCreator.Core
             Data[0x680] = (byte)-Checksum;
         }
 
-        internal void GenerateDefaultTagData(string GameName)
+        internal void GenerateDefaultTagData(string GameName, bool NESImage)
         {
             if (GameName.Length > 1)
             {
                 GameName = GameName.Trim().ToUpper();
-                Dictionary<string, byte[]> Tags = new Dictionary<string, byte[]>
+                List<KeyValuePair<string, byte[]>> Tags = new List <KeyValuePair<string, byte[]>>
                 {
-                    { "GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1)) },
-                    { "GNM", Encoding.ASCII.GetBytes(GameName) },
-                    { "GNO", new byte[1] { 0x1F } },
-                    { "END", new byte[0] }
+                    new KeyValuePair<string, byte[]>("GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1))),
+                    new KeyValuePair<string, byte[]>("GNM", Encoding.ASCII.GetBytes(GameName)),
+                    new KeyValuePair<string, byte[]>("GNO", new byte[1] { 0x1F }),
                 };
+
+                // Patch ROM if not NES Image
+                if (!NESImage)
+                {
+                    AddPatchData(ref Tags, 0x80003970, Patch.PatcherData);
+                    AddPatchData(ref Tags, 0x800451C8, Patch.PatcherEntryPointData);
+                }
+                
+                Tags.Add(new KeyValuePair<string, byte[]>("END", new byte[0]));
 
                 GenerateTagData(Tags);
             }
         }
 
-        public void GenerateTagData(Dictionary<string, byte[]> Tags)
+        internal void AddPatchData(ref List<KeyValuePair<string, byte[]>> Tags, uint WriteStartOffset, byte[] PatchData)
+        {
+            uint WriteAddress = WriteStartOffset;
+            uint DataOffset = 0;
+
+            while (WriteAddress < 0x807FFFFF && DataOffset < PatchData.Length)
+            {
+                List<byte> PatchDataList = new List<byte>();
+                uint WriteAmount = (uint)(PatchData.Length - DataOffset);
+                if (WriteAmount > 0xFB)
+                {
+                    WriteAmount = 0xFB;
+                }
+
+                PatchDataList.Add((byte)((WriteAddress - PatchAdjustOffset) >> 16));
+                PatchDataList.Add((byte)WriteAmount);
+                PatchDataList.Add((byte)((WriteAddress & 0xFF00) >> 8));
+                PatchDataList.Add((byte)(WriteAddress & 0xFF));
+
+                for (uint i = DataOffset; i < DataOffset + WriteAmount; i++)
+                {
+                    PatchDataList.Add(PatchData[DataOffset + i]);
+                }
+
+                DataOffset += WriteAmount;
+                WriteAddress += WriteAmount;
+
+                Tags.Add(new KeyValuePair<string, byte[]>("PAT", PatchDataList.ToArray()));
+            }
+        }
+
+        public void GenerateTagData(List<KeyValuePair<string, byte[]>> Tags)
         {
             bool HasEND = false;
+            List<byte> TagRawData = new List<byte>();
 
             // The first tag is printed and then ignored, so we can put whatever we want here
-            string TagString = "TAG\0";
+            TagRawData.AddRange(Encoding.ASCII.GetBytes("TAG\0"));
+
             foreach (var TagInfo in Tags)
             {
                 // Ensure the tag is capitalized
@@ -226,31 +266,28 @@ namespace ACNESCreator.Core
                 if (Array.IndexOf(TagList, Tag) > -1)
                 {
                     // Add the tag
-                    TagString += Tag;
+                    TagRawData.AddRange(Encoding.ASCII.GetBytes(Tag));
+
+                    // Add the tag data length
+                    TagRawData.Add((byte)(TagInfo.Value.Length & 0xFF));
 
                     if (Tag == "END")
                     {
                         HasEND = true;
                     }
 
-                    // Add the tag data length
-                    TagString += (char)(TagInfo.Value.Length & 0xFF);
-
                     // Add the tag data
-                    for (int i = 0; i < TagInfo.Value.Length; i++)
-                    {
-                        TagString += (char)TagInfo.Value[i];
-                    }
+                    TagRawData.AddRange(TagInfo.Value);
                 }
             }
 
             // Ensure that an END tag is present so the parser will stop
             if (!HasEND)
             {
-                TagString += "END\0";
+                TagRawData.AddRange(Encoding.ASCII.GetBytes("END\0"));
             }
 
-            byte[] TagBinaryData = Encoding.ASCII.GetBytes(TagString);
+            byte[] TagBinaryData = TagRawData.ToArray();
             TagBinaryData = Utility.GetPaddedData(TagBinaryData, (TagBinaryData.Length + 0xF) & ~0xF);
 
             Header.TagsSize = (ushort)TagBinaryData.Length;
