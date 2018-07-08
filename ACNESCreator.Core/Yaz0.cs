@@ -130,10 +130,10 @@ namespace ACNESCreator.Core
                 }
             }
 
-            return buildYAZ0CompressedBlock(ref layoutBits, ref uncompressedData, ref compressedData, decompressedSize);
+            return BuildYAZ0CompressedBlock(ref layoutBits, ref uncompressedData, ref compressedData, decompressedSize);
         }
 
-        public static byte[] buildYAZ0CompressedBlock(ref List<byte> layoutBits, ref List<byte> uncompressedData, ref List<int[]> offsetLengthPairs, int decompressedSize)
+        public static byte[] BuildYAZ0CompressedBlock(ref List<byte> layoutBits, ref List<byte> uncompressedData, ref List<int[]> offsetLengthPairs, int decompressedSize)
         {
             List<byte> finalYAZ0Block = new List<byte>();
             List<byte> layoutBytes = new List<byte>();
