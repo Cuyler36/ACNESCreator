@@ -42,6 +42,7 @@ namespace ACNESCreator.FrontEnd
                 LocationTextBox.IsEnabled = !value;
                 CompressCheckBox.IsEnabled = !value;
                 BrowseButton.IsEnabled = !value;
+                IsDnMe.IsEnabled = !value;
                 ProgressBar.IsIndeterminate = value;
                 _inProgress = value;
             }
