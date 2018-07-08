@@ -198,7 +198,7 @@ namespace ACNESCreator.Core
             if (GameName.Length > 1)
             {
                 GameName = GameName.Trim().ToUpper();
-                List<KeyValuePair<string, byte[]>> Tags = new List <KeyValuePair<string, byte[]>>
+                List<KeyValuePair<string, byte[]>> Tags = new List<KeyValuePair<string, byte[]>>
                 {
                     new KeyValuePair<string, byte[]>("GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1))),
                     new KeyValuePair<string, byte[]>("GNM", Encoding.ASCII.GetBytes(GameName)),
@@ -209,7 +209,7 @@ namespace ACNESCreator.Core
                 if (!NESImage)
                 {
                     AddPatchData(ref Tags, 0x80003970, Patch.PatcherData);
-                    AddPatchData(ref Tags, 0x800451C8, Patch.PatcherEntryPointData);
+                    AddPatchData(ref Tags, 0x806D4B9C, Patch.PatcherEntryPointData);
                 }
                 
                 Tags.Add(new KeyValuePair<string, byte[]>("END", new byte[0]));
