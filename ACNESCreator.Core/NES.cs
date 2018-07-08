@@ -104,6 +104,7 @@ namespace ACNESCreator.Core
         public readonly Region GameRegion;
         public readonly bool IsDnMe;
         public readonly byte[] SaveIconData;
+        public readonly bool IsROM;
 
         public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe, byte[] IconData = null)
         {
@@ -119,6 +120,8 @@ namespace ACNESCreator.Core
                 ROMData = Yaz0.Decompress(ROMData);
                 Compress = true;
             }
+
+            IsROM = IsNESImage(ROMData);
 
             if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
             {
@@ -162,7 +165,7 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
 
             // Generate custom tag data if possible
-            GenerateDefaultTagData(ROMName, IsNESImage(ROMData));
+            GenerateDefaultTagData(ROMName, IsROM);
         }
 
         public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
@@ -245,9 +248,6 @@ namespace ACNESCreator.Core
                 Tags.Add(new KeyValuePair<string, byte[]>("PAT", PatchDataList.ToArray()));
             }
         }
-
-        public bool IsNESImage()
-            => IsNESImage(ROM);
 
         public void GenerateTagData(List<KeyValuePair<string, byte[]>> Tags)
         {
