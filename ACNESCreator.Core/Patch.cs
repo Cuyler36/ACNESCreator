@@ -24,10 +24,5 @@
         {
             0x80, 0x00, 0x39, 0x70
         };
-
-        public static readonly byte[] MemcardLoadSizePatchData = new byte[]
-        {
-            0x3C, 0x00, 0x01, 0x00
-        };
     }
 }
