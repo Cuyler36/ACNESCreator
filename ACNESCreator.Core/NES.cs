@@ -249,6 +249,9 @@ namespace ACNESCreator.Core
             }
         }
 
+        public bool IsNESImage()
+            => IsNESImage(ROM);
+
         public void GenerateTagData(List<KeyValuePair<string, byte[]>> Tags)
         {
             bool HasEND = false;
