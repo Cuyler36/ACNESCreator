@@ -113,31 +113,28 @@ namespace ACNESCreator.Core
             // Is game Doubutsu no Mori e+?
             IsDnMe = IsGameDnMe;
 
-            if (true || IsNESImage(ROMData))
+            // If Data is Yaz0 compressed, uncompress it first
+            if (Yaz0.IsYaz0(ROMData))
             {
-                // If Data is Yaz0 compressed, uncompress it first
-                if (Yaz0.IsYaz0(ROMData))
-                {
-                    ROMData = Yaz0.Decompress(ROMData);
-                    Compress = true;
-                }
+                ROMData = Yaz0.Decompress(ROMData);
+                Compress = true;
+            }
 
-                if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
-                {
-                    throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
-                }
+            if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
+            {
+                throw new ArgumentException("ROMName cannot be less than 4 characters or longer than 16 characters.");
+            }
 
-                // Compress the ROM if compression is requested
-                if (Compress)
-                {
-                    ROMData = Yaz0.Compress(ROMData);
-                }
+            // Compress the ROM if compression is requested
+            if (Compress)
+            {
+                ROMData = Yaz0.Compress(ROMData);
+            }
 
-                if (!Compress && ROMData.Length > MaxROMSize)
-                {
-                    throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
-                        MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
-                }
+            if (!Compress && ROMData.Length > MaxROMSize)
+            {
+                throw new ArgumentException(string.Format("This ROM cannot be used, as it is larger than the max ROM size.\r\nThe max ROM size is 0x{0} ({1}) bytes long!",
+                    MaxROMSize.ToString("X"), MaxROMSize.ToString("N0")));
             }
 
             TagData = Utility.GetPaddedData(DefaultTagData, (DefaultTagData.Length + 0xF) & ~0xF);
