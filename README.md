@@ -32,5 +32,7 @@ struct AnimalCrossingNESPatch
   uint8_t Data[]; // The data to copy to RAM.
 };
 ```
+After you've created your file, you should follow the same process as creating a NES ROM.
+The program will automatically detect that the file is a patch file and notify you of so.
 
 #### Special thanks to James Chambers for discovering the NES Memory Card loading functionality & the PAT tag.
