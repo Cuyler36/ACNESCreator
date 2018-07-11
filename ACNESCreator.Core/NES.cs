@@ -239,7 +239,7 @@ namespace ACNESCreator.Core
 
                 for (uint i = DataOffset; i < DataOffset + WriteAmount; i++)
                 {
-                    PatchDataList.Add(PatchData[DataOffset + i]);
+                    PatchDataList.Add(PatchData[i]);
                 }
 
                 DataOffset += WriteAmount;
