@@ -2,7 +2,7 @@
 // Created by:
 //	Cuyler (Jeremy Olsen) & pyrocow (James Chambers)
 //
-// This loader takes advantage of the Memory Card NES Loader in Animal Crossing to patch itself to 0x8003970.
+// This loader takes advantage of the Memory Card NES Loader in Animal Crossing to patch itself to 0x8003640.
 // It then reads the NES ROM as patch data.
 // Patch structure:
 // struct ACNESPatch{
@@ -13,19 +13,17 @@
 // }
 .text
 // allocate stack frame
-stwu r1, -0x2C(r1)
+stwu r1, -0x30(r1)
 
 // save LR through r0
 mflr r0
 
-// store r0/r3/r4/r5/r6/r7/r8 registers
+// store r0/r3/r4/r5/r6 registers
 stw r0, 0x20(r1)
 stw r3, 0x1C(r1)
 stw r4, 0x18(r1)
 stw r5, 0x14(r1)
 stw r6, 0x10(r1)
-stw r7, 0x0C(r1)
-stw r8, 0x08(r1)
 
 // loader (loads from ROM Data)
 lis r3, NES_ROM_DATA_PTR_ADDRESS@h
@@ -40,17 +38,17 @@ beq exit
 lwz r4, 0(r3)
 cmplwi r4, 0
 beq exit
-mr r8, r4 // copy the copy offset to r8 in case we need to jump there
+stw r4, 0x28(r1) // save jump offset
+lwz r6, 0x08(r3) // the third int should be "bool isExecutable". If anything other than 0, the loader will jump to the address it 
+stw r6, 0x24(r1)// save executable flag
 lwz r6, 0x04(r3) // the second int should be the size to copy (ROM size - 8)
-lwz r7, 0x08(r3) // the third int should be "bool isExecutable". If anything other than 0, the loader will jump to the address it 
-stw r7, 0x24(r1) // save executable flag
-stw r8, 0x28(r1) // save jump offset
+stw r6, 0x2C(r1) // save size for invalidation operation later
 addi r5, r3, 0xC
 
 // start patching
 patchLoop:
 cmpwi r6, 0
-ble exit
+ble exitPatchLoop
 lbz r3, 0(r5)
 stb r3, 0(r4)
 addi r4, r4, 1
@@ -58,7 +56,30 @@ addi r5, r5, 1
 addi r6, r6, -1
 b patchLoop
 
-exit:
+exitPatchLoop:
+// invalidate instruction and data caches
+lwz r4, 0x2C(r1) // load size
+lwz r3, 0x28(r1) // load address
+clrlwi. r0, r4, 27
+beq align
+addi r4, r4, 0x20
+
+align:
+addi r4, r4, 0x1F
+srwi r4, r4, 5
+mtctr r4
+
+invalidationLoop:
+icbi r0, r3
+dcbi r0, r3
+addi r3, r3, 0x20
+bdnz invalidationLoop
+
+// sync invalidaitons
+flushCache:
+sync
+isync
+
 // restore register for arguments to my_zelda_free
 lwz r3, 0x1C(r1)
 
@@ -72,13 +93,13 @@ mtctr r5
 bctrl
 
 // check if the patch is executable
-lwz r7, 0x24(r1)
-cmplwi r7, 0
+lwz r4, 0x24(r1)
+cmplwi r4, 0
 beq restoreLR
 // restore offset and jump
-lwz r8, 0x28(r1)
+lwz r4, 0x28(r1)
 lwz r0, 0x20(r1) // set previous function LR in r0
-mtlr r8
+mtlr r4
 b cleanup
 
 restoreLR:
@@ -91,9 +112,7 @@ cleanup:
 lwz r4, 0x18(r1)
 lwz r5, 0x14(r1)
 lwz r6, 0x10(r1)
-lwz r7, 0x0C(r1)
-lwz r8, 0x08(r1)
-addi r1, r1, 0x2C
+addi r1, r1, 0x30
 blr
 
 .data

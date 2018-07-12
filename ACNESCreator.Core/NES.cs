@@ -208,8 +208,20 @@ namespace ACNESCreator.Core
                 // Patch ROM if not NES Image
                 if (!NESImage)
                 {
-                    AddPatchData(ref Tags, 0x80003970, Patch.PatcherData);
-                    AddPatchData(ref Tags, 0x806D4B9C, Patch.PatcherEntryPointData);
+                    byte[] LoaderData = new byte[Patch.PatcherData.Length * 4];
+                    for (int i = 0; i < Patch.PatcherData.Length; i++)
+                    {
+                        BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
+                    }
+
+                    byte[] EntryPointData = new byte[Patch.PatcherEntryPointData.Length * 4];
+                    for (int i = 0; i < Patch.PatcherEntryPointData.Length; i++)
+                    {
+                        BitConverter.GetBytes(Patch.PatcherEntryPointData[i].Reverse()).CopyTo(EntryPointData, i * 4);
+                    }
+
+                    AddPatchData(ref Tags, 0x80003640, LoaderData);
+                    AddPatchData(ref Tags, 0x806D4B9C, EntryPointData);
                 }
                 
                 Tags.Add(new KeyValuePair<string, byte[]>("END", new byte[0]));
