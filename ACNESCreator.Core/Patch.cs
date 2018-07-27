@@ -34,9 +34,6 @@
             0x00000000
         };
 
-        public static readonly uint[] PatcherEntryPointData = new uint[]
-        {
-            0x80003970
-        };
+        public const uint PatcherEntryPointData = 0x80003970;
     }
 }

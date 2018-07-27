@@ -214,23 +214,17 @@ namespace ACNESCreator.Core
                         BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
                     }
 
-                    byte[] EntryPointData = new byte[Patch.PatcherEntryPointData.Length * 4];
-                    for (int i = 0; i < Patch.PatcherEntryPointData.Length; i++)
-                    {
-                        BitConverter.GetBytes(Patch.PatcherEntryPointData[i].Reverse()).CopyTo(EntryPointData, i * 4);
-                    }
-
-                    AddPatchData(ref Tags, Patch.PatcherEntryPointData[0], LoaderData);
+                    AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
                     switch (GameRegion)
                     {
                         case Region.Japan:
                             if (IsDnMe)
                             {
-                                AddPatchData(ref Tags, 0x8115B7D4, EntryPointData);
+                                AddPatchData(ref Tags, 0x8115B7D4, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
                             }
                             else // DnM+
                             {
-                                AddPatchData(ref Tags, 0x801EF65C, EntryPointData);
+                                AddPatchData(ref Tags, 0x801EF65C, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
                             }
                             break;
                         case Region.Europe:
@@ -239,7 +233,7 @@ namespace ACNESCreator.Core
                             break;
                         case Region.NorthAmerica:
                         default:
-                            AddPatchData(ref Tags, 0x806D4B9C, EntryPointData);
+                            AddPatchData(ref Tags, 0x806D4B9C, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
                             break;
                     }
                 }
