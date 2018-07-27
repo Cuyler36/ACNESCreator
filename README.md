@@ -35,7 +35,7 @@ struct AnimalCrossingNESPatch
   uint32_t PatchSize; // Size in bytes of patch data to copy to RAM.
   uint32_t PatchFlags; // Only the last flag used to mark the code as exectuable currently. [Executable = PatchFlags & 1]
   uint8_t Data[]; // The data to copy to RAM.
-}[] Patches;
+} Patches[];
 ```
 You can find the source code of the loader [here](https://github.com/jamchamb/ac-patch-loader).
 
