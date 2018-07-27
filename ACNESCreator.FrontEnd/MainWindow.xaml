@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ACNESCreator.FrontEnd"
         mc:Ignorable="d"
-        Title="Animal Crossing NES Save File Creator" Height="270" Width="368" ResizeMode="CanMinimize">
+        Title="Animal Crossing NES Creator" Height="270" Width="368" ResizeMode="CanMinimize">
     <Grid>
         <Label x:Name="label" Content="Game Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label1" Content="NES ROM Location" HorizontalAlignment="Left" Margin="10,69,0,0" VerticalAlignment="Top"/>
