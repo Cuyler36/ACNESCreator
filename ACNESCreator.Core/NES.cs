@@ -165,7 +165,7 @@ namespace ACNESCreator.Core
             GameRegion = ACRegion;
 
             // Generate custom tag data if possible
-            GenerateDefaultTagData(ROMName, IsROM);
+            GenerateDefaultTagData(ROMName, IsROM, ACRegion, IsGameDnMe);
         }
 
         public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
@@ -193,7 +193,7 @@ namespace ACNESCreator.Core
             Data[0x680] = (byte)-Checksum;
         }
 
-        internal void GenerateDefaultTagData(string GameName, bool NESImage)
+        internal void GenerateDefaultTagData(string GameName, bool NESImage, Region GameRegion, bool IsDnMe)
         {
             if (GameName.Length > 1)
             {
@@ -220,8 +220,28 @@ namespace ACNESCreator.Core
                         BitConverter.GetBytes(Patch.PatcherEntryPointData[i].Reverse()).CopyTo(EntryPointData, i * 4);
                     }
 
-                    AddPatchData(ref Tags, 0x80003640, LoaderData);
-                    AddPatchData(ref Tags, 0x806D4B9C, EntryPointData);
+                    AddPatchData(ref Tags, Patch.PatcherEntryPointData[0], LoaderData);
+                    switch (GameRegion)
+                    {
+                        case Region.Japan:
+                            if (IsDnMe)
+                            {
+                                AddPatchData(ref Tags, 0x8115B7D4, EntryPointData);
+                            }
+                            else // DnM+
+                            {
+                                AddPatchData(ref Tags, 0x801EF65C, EntryPointData);
+                            }
+                            break;
+                        case Region.Europe:
+                            break;
+                        case Region.Australia:
+                            break;
+                        case Region.NorthAmerica:
+                        default:
+                            AddPatchData(ref Tags, 0x806D4B9C, EntryPointData);
+                            break;
+                    }
                 }
                 
                 Tags.Add(new KeyValuePair<string, byte[]>("END", new byte[0]));

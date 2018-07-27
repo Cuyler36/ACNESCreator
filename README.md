@@ -24,14 +24,21 @@ By taking advantage of Animal Crossing's NES emulator's "Tag" settings, we can o
 First, you'll need to create a blank file.
 Then, you'll need to follow this structure format in that file:
 ```c
+struct AnimalCrossingNESPatchHeader {
+	uint16_t GlobalFlags; // Global Loader Flags. Currently, setting the last flag will enable the JUTReportConsole without zurumode. [JUTConsoleEnabled = GlobalFlags & 1]
+	uint16_t PatchCount; // Number of patches to copy.
+};
+
 struct AnimalCrossingNESPatch
 {
   uint32_t PatchAddress; // The location in memory to write data to.
   uint32_t PatchSize; // Size in bytes of patch data to copy to RAM.
-  uint32_t IsExecutable; // If not set to 0, then the loader will jump to PatchAddress. If you'd like to return control to the game, r0 holds the return address to the function that the loader hooked.
+  uint32_t PatchFlags; // Only the last flag used to mark the code as exectuable currently. [Executable = PatchFlags & 1]
   uint8_t Data[]; // The data to copy to RAM.
-};
+}[] Patches;
 ```
+You can find the source code of the loader [here](https://github.com/jamchamb/ac-patch-loader).
+
 After you've created your file, you should follow the same process as creating a NES ROM.
 The program will automatically detect that the file is a patch file and notify you of so.
 
