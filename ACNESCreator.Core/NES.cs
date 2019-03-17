@@ -308,18 +308,9 @@ namespace ACNESCreator.Core
                         tags.Add(new KeyValuePair<string, byte[]>("END", new byte[] { 0x00 }));
                         break;
                     }
-                    else
-                    {
-                        var size = reader.ReadByte();
-                        var data = new byte[size];
 
-                        if (size > 0)
-                        {
-                            reader.ReadBytes(size).CopyTo(data, 0);
-                        }
-
-                        tags.Add(new KeyValuePair<string, byte[]>(tag, data));
-                    }
+                    var size = reader.ReadByte();
+                    tags.Add(new KeyValuePair<string, byte[]>(tag, size == 0 ? new byte[0] : reader.ReadBytes(size)));
                 }
             }
 
