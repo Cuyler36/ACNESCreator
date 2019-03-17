@@ -1,6 +1,8 @@
 ﻿using ACNESCreator.Core;
 using System;
 using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace ACNESCreator.CommandLine
 {
@@ -10,51 +12,160 @@ namespace ACNESCreator.CommandLine
 
         static void Main(string[] args)
         {
+            // Enable Shift-JIS support.
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            string inputName = null;
+            string outputName = null;
+            string romName = null;
+            string tagsFileName = null;
+            string region = null;
+            var ePlus = false;
+            var canSave = true;
+            var forceCompress = false;
+
             if (args == null || args.Length < 1)
             {
-                Console.WriteLine("Enter the name of the NES game: ");
-                args = new string[1] { Console.ReadLine() };
-            }
-            if (args.Length < 2)
-            {
-                Console.WriteLine("Enter the path to the NES game to inject: ");
-                args = new string[2] { args[0], Console.ReadLine().Replace("\"", "") };
-            }
-            if (args.Length < 3)
-            {
-                Console.WriteLine("Enter your Animal Crossing game's region (J for Japan, E for North America, P for Europe, and U for Austrailia:");
-                args = new string[3] { args[0], args[1], Console.ReadLine() };
-            }
-
-            if (args[0].Length >= 4 && File.Exists(args[1]))
-            {
-                int RegionIdx = Array.IndexOf(RegionCodes, args[2].ToUpper());
-                if (RegionIdx > -1)
-                {
-                    NES NESFile = new NES(args[0], File.ReadAllBytes(args[1]), false, (Region)RegionIdx, false, false);
-
-                    string OutputFile = Path.GetDirectoryName(args[1]) + "\\" + args[0] + "_" + args[2].ToUpper() + "_InjectedData.gci";
-                    using (var Stream = new FileStream(OutputFile, FileMode.OpenOrCreate))
-                    {
-                        byte[] Data = NESFile.GenerateGCIFile();
-                        PrintChecksum(Data);
-                        Stream.Write(Data, 0, Data.Length);
-                    }
-
-                    Console.WriteLine("Successfully generated a GCI file with the NES rom in it!\nFile Location: " + OutputFile);
-                    Console.ReadLine();
-                }
-                else
-                {
-                    Console.WriteLine("The region code you entered couldn't be found!\r\nThe supported codes are: J, E, P, and U!");
-                    Console.ReadLine();
-                }
+                Console.WriteLine("usage: ACNESCreator.CommandLine.exe nesRomFile outputFile");
             }
             else
             {
-                Console.WriteLine("The NES name must be four or more characters long!");
-                Console.ReadLine();
+                for (var i = 0; i < args.Length; i++)
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        switch (args[i].ToLower())
+                        {
+                            case "-i":
+                            case "-input":
+                                i++;
+                                inputName = args[i];
+                                break;
+
+                            case "-o":
+                            case "-output":
+                                i++;
+                                outputName = args[i];
+                                break;
+
+                            case "-n":
+                            case "-name":
+                                i++;
+                                romName = args[i];
+                                break;
+
+                            case "-nosave":
+                                canSave = false;
+                                break;
+
+                            case "-c":
+                            case "-compress":
+                                forceCompress = true;
+                                break;
+
+                            case "-e":
+                            case "-eplus":
+                                ePlus = true;
+                                region = "J";
+                                break;
+
+                            case "-t":
+                            case "-tags":
+                                i++;
+                                tagsFileName = args[i];
+                                break;
+
+                            case "-r":
+                            case "-region":
+                                i++;
+                                if (!ePlus) region = args[i];
+                                break;
+
+                            default:
+                                if (inputName == null)
+                                {
+                                    inputName = args[i + 1];
+                                }
+                                else if (outputName == null)
+                                {
+                                    outputName = args[i + 1];
+                                }
+                                break;
+                        }
+                    }
+                }
+
+                if (inputName == null || !File.Exists(inputName))
+                {
+                    Console.WriteLine("The input file doesn't exist!");
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(outputName))
+                    {
+                        Console.WriteLine("An output file name must be supplied!");
+                    }
+                    else
+                    {
+                        if (tagsFileName != null && !File.Exists(tagsFileName))
+                        {
+                            Console.WriteLine("The tags file doesn't exist! Default tags will be generated.");
+                            tagsFileName = null;
+                        }
+
+                        if (romName != null && romName.Trim().Length == 0)
+                        {
+                            Console.WriteLine("The name supplied is invalid. Default name will be used.");
+                            romName = "Custom NES Game";
+                        }
+
+                        if (region != null && !RegionCodes.Contains(region.ToUpper()))
+                        {
+                            Console.WriteLine("The region code supplied is invalid. Region code E (NTSC-U, Animal Crossing) will be used.");
+                            region = "E";
+                        }
+
+                        // Generate the file with the supplied arguments.
+                        try
+                        {
+                            Stream tagsStream = null;
+                            if (tagsFileName != null)
+                            {
+                                tagsStream = File.OpenRead(tagsFileName);
+                            }
+
+                            using (tagsStream)
+                            {
+                                NES nesFile = new NES(romName, File.ReadAllBytes(inputName), forceCompress,
+                                    (Region)Array.IndexOf(RegionCodes, region), canSave, ePlus, null,
+                                    tagsStream);
+
+                                var outputFile = Path.Combine(Path.GetDirectoryName(inputName),
+                                    $"{Path.GetFileNameWithoutExtension(outputName)}.gci");
+
+                                using (var stream = new FileStream(outputFile, FileMode.OpenOrCreate))
+                                {
+                                    var data = nesFile.GenerateGCIFile();
+                                    PrintChecksum(data);
+                                    stream.Write(data, 0, data.Length);
+                                }
+
+                                Console.WriteLine("Successfully generated a GCI file with the NES rom in it!");
+                                Console.WriteLine($"File Location: {outputFile}");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("An error occurred during file generation.");
+                            Console.WriteLine(e.Message);
+                            Console.WriteLine(e.StackTrace);
+                        }
+                    }
+                }
             }
+
+            Console.WriteLine("Press any key to close the window...");
+            Console.ReadKey();
         }
 
         internal static void PrintChecksum(byte[] Data)

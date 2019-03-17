@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace ACNESCreator.Core
@@ -16,6 +18,16 @@ namespace ACNESCreator.Core
     {
         public const int MaxROMSize = 0xFFFF0;
         const uint PatchAdjustOffset = 0x7F800000;
+
+        /*
+         * Flags:
+         *  Flags for flag1:
+         *      bool hasEmbeddedSaveFileImage = (flags >> 7) & 1 == 1;
+         * 
+         * 
+         *  Flags for flag2:
+         *      BannerFormat bannerFormat = (BannerFormat) ((flags >> 5) & 3);
+         */
 
         const byte DefaultFlags1 = 0xEA;
         const byte DefaultFlags2 = 0;
@@ -106,7 +118,8 @@ namespace ACNESCreator.Core
         public readonly byte[] SaveIconData;
         public readonly bool IsROM;
 
-        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe, byte[] IconData = null)
+        public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe,
+            byte[] IconData = null, Stream tagsStream = null)
         {
             // Set the icon
             SaveIconData = IconData ?? GCI.DefaultIconData;
@@ -153,7 +166,7 @@ namespace ACNESCreator.Core
                 Name = ROMName,
                 DataSize = (ushort)((ROMData.Length + 0xF) >> 4), // If the ROM is compressed, the size is retrieved from the Yaz0 header.
                 TagsSize = (ushort)((TagData.Length + 0xF) & ~0xF),
-                IconFormat = (ushort)IconFormats.Shared_CI8,
+                IconFormat = (ushort)IconFormat.CI8,
                 IconFlags = 0,
                 BannerSize = (ushort)((BannerData.GetSize() + 0xF) & ~0xF),
                 Flags1 = DefaultFlags1,
@@ -164,12 +177,20 @@ namespace ACNESCreator.Core
             ROM = ROMData;
             GameRegion = ACRegion;
 
-            // Generate custom tag data if possible
-            GenerateDefaultTagData(ROMName, IsROM, ACRegion, IsGameDnMe);
+            // Generate custom tag data if possible.
+            if (tagsStream == null)
+            {
+                GenerateDefaultTagData(ROMName, IsROM, ACRegion, IsGameDnMe);
+            }
+            else
+            {
+                ImportTags(tagsStream);
+            }
         }
 
-        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe, byte[] IconData = null)
-            : this(ROMName, ROMData, ACRegion, Compress, IsDnMe, IconData)
+        public NES(string ROMName, byte[] ROMData, bool CanSave, Region ACRegion, bool Compress, bool IsDnMe,
+            byte[] IconData = null, Stream tagsStream = null)
+            : this(ROMName, ROMData, ACRegion, Compress, IsDnMe, IconData, tagsStream)
         {
             if (!CanSave)
             {
@@ -202,25 +223,43 @@ namespace ACNESCreator.Core
                 {
                     new KeyValuePair<string, byte[]>("GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1))),
                     new KeyValuePair<string, byte[]>("GNM", Encoding.ASCII.GetBytes(GameName)),
-                    new KeyValuePair<string, byte[]>("GNO", new byte[1] { 0x1F }),
                 };
 
                 // Patch ROM if not NES Image
                 if (!NESImage)
                 {
-                    byte[] LoaderData = new byte[Patch.PatcherData.Length * 4];
-                    for (int i = 0; i < Patch.PatcherData.Length; i++)
+                    if (IsDnMe)
                     {
-                        BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
-                    }
+                        var LoaderData = new byte[Patch.AnimalForestEPlusV1_01PatcherData.Length * 4];
+                        for (var i = 0; i < Patch.AnimalForestEPlusV1_01PatcherData.Length; i++)
+                        {
+                            BitConverter.GetBytes(Patch.AnimalForestEPlusV1_01PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
+                        }
 
-                    AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
+                        AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
+                    }
+                    else
+                    {
+                        byte[] LoaderData = new byte[Patch.PatcherData.Length * 4];
+                        for (int i = 0; i < Patch.PatcherData.Length; i++)
+                        {
+                            BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
+                        }
+
+                        AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
+                    }
                     switch (GameRegion)
                     {
                         case Region.Japan:
                             if (IsDnMe)
                             {
-                                AddPatchData(ref Tags, 0x8115B7D4, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
+                                // Only for v1.01
+
+                                // Custom my_current_alloc struct + 4 pointer to our loader.
+                                AddPatchData(ref Tags, 0x8000396C, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
+
+                                // Overwrite my_current_alloc struct pointer to our custom fake struct.
+                                AddPatchData(ref Tags, 0x8022055C, new byte[] { 0x80, 0x00, 0x39, 0x68 });
                             }
                             else // DnM+
                             {
@@ -242,6 +281,50 @@ namespace ACNESCreator.Core
 
                 GenerateTagData(Tags);
             }
+        }
+
+        public void ImportTags(Stream tagsStream)
+        {
+            var tags = new List<KeyValuePair<string, byte[]>>();
+
+            using (var reader = new BinaryReader(tagsStream))
+            {
+                while (tagsStream.Position < tagsStream.Length)
+                {
+                    var tag = Encoding.ASCII.GetString(reader.ReadBytes(3)).ToUpper();
+
+                    // Verify tag is a real tag.
+                    if (!TagList.Contains(tag))
+                    {
+                        Console.WriteLine($"Ignoring {tag} because it's not a valid tag!");
+                        tagsStream.Position++;
+                        continue;
+                    }
+
+                    if (tag == "END")
+                    {
+                        // If we hit an END tag, there's no point in continuing to parse the tags.
+                        // The nestag parser will exit there so any tags following will be ignored anyways.
+                        tags.Add(new KeyValuePair<string, byte[]>("END", new byte[] { 0x00 }));
+                        break;
+                    }
+                    else
+                    {
+                        var size = reader.ReadByte();
+                        var data = new byte[size];
+
+                        if (size > 0)
+                        {
+                            reader.ReadBytes(size).CopyTo(data, 0);
+                        }
+
+                        tags.Add(new KeyValuePair<string, byte[]>(tag, data));
+                    }
+                }
+            }
+
+            // Generate the binary tag data.
+            GenerateTagData(tags);
         }
 
         internal void AddPatchData(ref List<KeyValuePair<string, byte[]>> Tags, uint WriteStartOffset, byte[] PatchData)

@@ -5,38 +5,41 @@ using System.Text;
 
 namespace ACNESCreator.Core
 {
-    public enum BIFlags
+    public enum BannerFormat
     {
-        None = 0,
-        CI8 = 1,
-        RGB5A3 = 2,
-        Unknown = 3
+        None    = 0,
+        CI8     = 1,
+        RGB5A3  = 2
     }
 
-    public enum IconFormats
+    public enum IconFormat
     {
-        None = 0,
-        Shared_CI8 = 1,
-        RGB5A3 = 2,
-        Unique_CI8 = 3
+        None    = 0,
+        CI8     = 1,
+        RGB5A3  = 2
     }
 
-    public enum AnimationSpeeds
+    public enum AnimationSpeed
     {
-        None = 0,
-        FourFrames = 1,
-        EightFrames = 2,
-        TwelveFrames = 3
+        None    = 0,
+        Fast    = 1,
+        Medium  = 2,
+        Slow    = 3
     }
 
-    public enum Permissions
+    public enum Attribute : byte
     {
-        Public = 0b0010, // 2
-        NoCopy = 0b0100, // 4
-        NoMove = 0b1000  // 8
+        Reserved0 = 0x01,
+        Reserved1 = 0x02,
+        Public    = 0x04,
+        NoCopy    = 0x08,
+        NoMove    = 0x10,
+        Global    = 0x20,
+        Company   = 0x40,
+        Reserved7 = 0x80
     }
 
-    public class GCI
+    public sealed class GCI
     {
         #region DEFAULT ICON IMAGE DATA
         public static readonly byte[] DefaultIconData = new byte[]
@@ -213,9 +216,9 @@ namespace ACNESCreator.Core
                 FileName = "DobutsunomoriP_F_GAME";
                 ModTime = (int)new TimeSpan(DateTime.Now.Ticks - Epoch).TotalSeconds;
                 ImageOffset = 0x40;
-                IconFormat = (ushort)IconFormats.Shared_CI8;
-                AnimationSpeed = (ushort)AnimationSpeeds.EightFrames;
-                PermissionsFlags = (byte)Permissions.NoCopy;
+                IconFormat = (ushort)Core.IconFormat.CI8;
+                AnimationSpeed = (ushort)Core.AnimationSpeed.Medium;
+                PermissionsFlags = (byte)Attribute.NoCopy;
                 CopyCounter = 0;
                 FirstBlock = 0;
                 BlockCount = 1;
@@ -258,9 +261,9 @@ namespace ACNESCreator.Core
         public GCI(byte[] HeaderData, byte[] CommentData, byte[] BannerData, byte[] IconData)
         {
             Header = new GCIHeader(HeaderData);
-            Comment1 = Encoding.GetEncoding("shift-jis").GetString(CommentData, 0, 32);
-            Comment2 = Encoding.GetEncoding("shift-jis").GetString(CommentData, 0x20, 32);
-            if ((IconFormats)Header.IconFormat == IconFormats.Shared_CI8)
+            Comment1 = Encoding.GetEncoding("Shift-JIS").GetString(CommentData, 0, 32);
+            Comment2 = Encoding.GetEncoding("Shift-JIS").GetString(CommentData, 0x20, 32);
+            if ((IconFormat)Header.IconFormat == IconFormat.CI8)
             {
                 ImageData = IconData.Skip(Header.ImageOffset + GCIHeaderSize).Take(0x600).ToArray();
             }
