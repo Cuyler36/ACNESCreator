@@ -222,8 +222,17 @@ namespace ACNESCreator.Core
                 List<KeyValuePair<string, byte[]>> Tags = new List<KeyValuePair<string, byte[]>>
                 {
                     new KeyValuePair<string, byte[]>("GID", Encoding.ASCII.GetBytes(GameName.Substring(0, 1) + GameName.Substring(GameName.Length - 1, 1))),
-                    new KeyValuePair<string, byte[]>("GNM", Encoding.ASCII.GetBytes(GameName)),
+                    new KeyValuePair<string, byte[]>("GNM", Encoding.ASCII.GetBytes(GameName))
                 };
+
+                // Check to see if saving is enabled.
+                if ((Header.Flags1 & 0x80) != 0)
+                {
+                    // TODO: Famicom QDS option.
+
+                    // This works by backing up the entire battery backup RAM.
+                    Tags.Add(new KeyValuePair<string, byte[]>("BBR", new byte[4] { 0x00, 0x00, 0x20, 0x00 }));
+                }
 
                 // Patch ROM if not NES Image
                 if (!NESImage)
