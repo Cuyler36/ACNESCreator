@@ -283,45 +283,18 @@ namespace ACNESCreator.Core
                 }
 
                 // Patch ROM if not NES Image
-                if (!NESImage)
+                if (!NESImage && GameRegion == Region.NorthAmerica) // TODO: Support DnM+ 1.0, DnM+ 1.1, AC Austrialian, AC European, DnMe+ 1.0, & DnMe+ 1.1
                 {
-                    if (IsDnMe)
+                    byte[] LoaderData = new byte[Patch.PatcherData.Length * 4];
+                    for (int i = 0; i < Patch.PatcherData.Length; i++)
                     {
-                        var LoaderData = new byte[Patch.AnimalForestEPlusV1_01PatcherData.Length * 4];
-                        for (var i = 0; i < Patch.AnimalForestEPlusV1_01PatcherData.Length; i++)
-                        {
-                            BitConverter.GetBytes(Patch.AnimalForestEPlusV1_01PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
-                        }
-
-                        AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
+                        BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
                     }
-                    else
-                    {
-                        byte[] LoaderData = new byte[Patch.PatcherData.Length * 4];
-                        for (int i = 0; i < Patch.PatcherData.Length; i++)
-                        {
-                            BitConverter.GetBytes(Patch.PatcherData[i].Reverse()).CopyTo(LoaderData, i * 4);
-                        }
 
-                        AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
-                    }
+                    AddPatchData(ref Tags, Patch.PatcherEntryPointData, LoaderData);
                     switch (GameRegion)
                     {
                         case Region.Japan:
-                            if (IsDnMe)
-                            {
-                                // Only for v1.01
-
-                                // Custom my_current_alloc struct + 4 pointer to our loader.
-                                AddPatchData(ref Tags, 0x8000396C, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
-
-                                // Overwrite my_current_alloc struct pointer to our custom fake struct.
-                                AddPatchData(ref Tags, 0x8022055C, new byte[] { 0x80, 0x00, 0x39, 0x68 });
-                            }
-                            else // DnM+
-                            {
-                                AddPatchData(ref Tags, 0x801EF65C, BitConverter.GetBytes(Patch.PatcherEntryPointData.Reverse()));
-                            }
                             break;
                         case Region.Europe:
                             break;
