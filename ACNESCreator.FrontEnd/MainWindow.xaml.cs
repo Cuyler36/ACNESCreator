@@ -22,7 +22,7 @@ namespace ACNESCreator.FrontEnd
         readonly static string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
         readonly OpenFileDialog SelectROMDialog = new OpenFileDialog
         {
-            Filter = "All Supported Files|*.nes;*yaz0;*.bin|NES ROM Files|*.nes|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
+            Filter = "All Supported Files|*.nes;*.fds;*yaz0;*.bin|NES ROM Files|*.nes|Famicom Disk System Files|*.fds|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
         };
         readonly OpenFileDialog SelectIconImageDialog = new OpenFileDialog
         {
@@ -145,17 +145,17 @@ namespace ACNESCreator.FrontEnd
                     return;
                 }
 
-                if (!NESFile.IsROM)
+                if (!NESFile.IsROM && !NESFile.IsFDS)
                 {
                     MessageBox.Show("Your file doesn't appear to be a NES ROM! It will be treated as a data patch, and will modify the game's memory instead!",
                         "ROM Info", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
-                string OutputLocation = Path.GetDirectoryName(ROMLocation) + Path.DirectorySeparatorChar + GameName + "_" + RegionCodes[(int)ACRegion]
-                        + "_NESData.gci";
+                var OutputLocation = Path.Combine(Path.GetDirectoryName(ROMLocation),
+                    $"{GameName}_{RegionCodes[(int)ACRegion]}_NESData.gci");
                 try
                 {
-                    byte[] OutputData = NESFile.GenerateGCIFile();
+                    var OutputData = NESFile.GenerateGCIFile();
                     using (var Stream = new FileStream(OutputLocation, FileMode.Create))
                     {
                         Stream.Write(OutputData, 0, OutputData.Length);

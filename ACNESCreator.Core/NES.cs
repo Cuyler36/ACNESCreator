@@ -16,6 +16,8 @@ namespace ACNESCreator.Core
 
     public class NES
     {
+        public static NES Instance;
+
         public const int MaxROMSize = 0xFFFF0;
         const uint PatchAdjustOffset = 0x7F800000;
 
@@ -42,8 +44,8 @@ namespace ACNESCreator.Core
 
         public class ACNESHeader
         {
-            public byte Checksum = 0; // May not be the checksum byte.
-            public byte Unknown = 0; // May not be used.
+            public byte Checksum = 0; // May not be the checksum byte. Initialized to 0x47 when not loading a memcard game.
+            public byte Unknown = 0; // May not be used. Seems to be initialized to zero when loading a memcard game. Could be a bool meant to show if game is memcard or not.
             public string Name;
             public ushort DataSize;
             public ushort TagsSize;
@@ -117,10 +119,16 @@ namespace ACNESCreator.Core
         public readonly bool IsDnMe;
         public readonly byte[] SaveIconData;
         public readonly bool IsROM;
+        public readonly bool IsFDS;
+
+        private readonly int originalROMSize;
 
         public NES(string ROMName, byte[] ROMData, Region ACRegion, bool Compress, bool IsGameDnMe,
             byte[] IconData = null, Stream tagsStream = null)
         {
+            // Save the original size of the ROM image
+            originalROMSize = ROMData.Length;
+
             // Set the icon
             SaveIconData = IconData ?? GCI.DefaultIconData;
 
@@ -135,6 +143,10 @@ namespace ACNESCreator.Core
             }
 
             IsROM = IsNESImage(ROMData);
+            if (!IsROM)
+            {
+                IsFDS = IsFDSImage(ROMData);
+            }
 
             if (ROMName == null || ROMName.Length < 4 || ROMName.Length > 0x10)
             {
@@ -180,7 +192,7 @@ namespace ACNESCreator.Core
             // Generate custom tag data if possible.
             if (tagsStream == null)
             {
-                GenerateDefaultTagData(ROMName, IsROM, ACRegion, IsGameDnMe);
+                GenerateDefaultTagData(ROMName, IsROM || IsFDS, ACRegion, IsGameDnMe);
             }
             else
             {
@@ -202,6 +214,9 @@ namespace ACNESCreator.Core
 
         internal bool IsNESImage(byte[] Data)
             => Encoding.ASCII.GetString(Data, 0, 3) == "NES";
+
+        internal bool IsFDSImage(byte[] data)
+            => Encoding.ASCII.GetString(data, 1, 14) == "*NINTENDO-HVC*";
 
         internal void SetChecksum(ref byte[] Data)
         {
@@ -228,10 +243,43 @@ namespace ACNESCreator.Core
                 // Check to see if saving is enabled.
                 if ((Header.Flags1 & 0x80) != 0)
                 {
-                    // TODO: Famicom QDS option.
+                    Tags.Add(new KeyValuePair<string, byte[]>("OFS", new byte[2] { 0x00, 0x00 }));
 
-                    // This works by backing up the entire battery backup RAM.
-                    Tags.Add(new KeyValuePair<string, byte[]>("BBR", new byte[4] { 0x00, 0x00, 0x20, 0x00 }));
+                    if (IsROM)
+                    {
+                        // This works by backing up the entire battery backup RAM.
+                        Tags.Add(new KeyValuePair<string, byte[]>("BBR", new byte[4] { 0x00, 0x00, 0x20, 0x00 }));
+                    }
+                    else if (IsFDS)
+                    {
+                        // This works by created a save state by snapshotting the entire disk image in "RAM".
+                        var sections = (originalROMSize / 0x8000) + 1; // Save it in 32KB chunks
+
+                        var offset = 0;
+                        for (var i = 0; i < sections; i++)
+                        {
+                            if (i == sections - 1)
+                            {
+                                var size = originalROMSize - offset;
+                                if (size > 0)
+                                    Tags.Add(new KeyValuePair<string, byte[]>("QDS", new byte[5] { (byte)(offset >> 16), (byte)(offset >> 8), (byte)offset, (byte)(size >> 8), (byte)size }));
+                            }
+                            else
+                                Tags.Add(new KeyValuePair<string, byte[]>("QDS", new byte[5] { (byte)(offset >> 16), (byte)(offset >> 8), (byte)offset, 0x80, 0x00 }));
+                            offset += 0x8000;
+                            offset &= 0xFFFFFF;
+                        }
+
+                        // NOTE: The default implementation inside e+ doesn't even work. FamicomSaveDataHeader->saveDataSize is a ushort, so it's limited to 0xFFFF bytes.
+                        // The default implementation in tags_table_external_disksystem_default does the following:
+                        // OFS 0000
+                        // QDS 000000 8000
+                        // QDS 008000 8000
+                        // QDS 010000 8000
+                        // QDS 018000 8000
+                        //
+                        // This is strange, because it would mean the max save size is 0x20000 bytes, which is 0x10001 bytes more than FamicomSaveDataHeader->saveDataSize can hold.
+                    }
                 }
 
                 // Patch ROM if not NES Image
