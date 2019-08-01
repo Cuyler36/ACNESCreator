@@ -137,7 +137,7 @@ namespace ACNESCreator.FrontEnd
                     return;
                 }
 
-                if (!NESFile.IsROM && !NESFile.IsFDS)
+                if (!NESFile.IsROM && !NESFile.IsFDS && ACRegion == Region.NorthAmerica)
                 {
                     MessageBox.Show("Your file doesn't appear to be a NES ROM! It will be treated as a data patch, and will modify the game's memory instead!",
                         "ROM Info", MessageBoxButton.OK, MessageBoxImage.Information);
