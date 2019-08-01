@@ -122,14 +122,6 @@ namespace ACNESCreator.FrontEnd
                 }
 
                 bool Compress = !Yaz0.IsYaz0(ROMData) && CompressCheckBox.IsChecked.Value;
-
-                // If the ROM needs to be compressed, notify the user that it will be compressed and to wait patiently.
-                if (Compress)
-                {
-                    MessageBox.Show("The ROM file supplied will be compressed!\r\nThis may take some time," +
-                        " so please be patient!", "Compression Alert", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-
                 NES NESFile = null;
                 try
                 {
