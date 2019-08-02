@@ -35,5 +35,6 @@
             </Image.ContextMenu>
         </Image>
         <Label Content="Icon" HorizontalAlignment="Left" Margin="299,10,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="StatusLabel" VerticalAlignment="Bottom" Margin="5,0,5,0" FontSize="10"/>
     </Grid>
 </Window>

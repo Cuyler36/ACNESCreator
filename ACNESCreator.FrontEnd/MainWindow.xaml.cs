@@ -58,6 +58,8 @@ namespace ACNESCreator.FrontEnd
             RefreshIconImage();
         }
 
+        private void SetStatus(string status) => StatusLabel.Content = status;
+
         private void RefreshIconImage()
         {
             ushort[] Palette = new ushort[256];
@@ -95,6 +97,7 @@ namespace ACNESCreator.FrontEnd
                 && File.Exists(LocationTextBox.Text))
             {
                 InProgress = true;
+                SetStatus("Creating GameCube GCI Save File...");
 
                 string GameName = GameNameTextBox.Text;
                 string ROMLocation = LocationTextBox.Text;
@@ -153,10 +156,12 @@ namespace ACNESCreator.FrontEnd
                         Stream.Write(OutputData, 0, OutputData.Length);
                         Stream.Flush();
                     }
+                    SetStatus("Successfully created a save file containing the supplied ROM!");
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("An error occured while saving the generated GCI file!", "GCI Creation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    SetStatus("Failed to create a save file containing the supplied ROM!");
                     InProgress = false;
                     Console.WriteLine(ex.Message);
                     Console.WriteLine(ex.StackTrace);
