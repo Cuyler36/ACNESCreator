@@ -13,7 +13,7 @@
         <Label Content="Has Save File" HorizontalAlignment="Left" Margin="248,69,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="GameNameTextBox" HorizontalAlignment="Left" Height="23" Margin="10,41,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" MaxLength="16" Width="189"/>
         <TextBox x:Name="LocationTextBox" HorizontalAlignment="Left" Height="23" Margin="10,100,0,0" VerticalContentAlignment="Center" VerticalAlignment="Top" Width="252"/>
-        <ComboBox x:Name="RegionComboBox" HorizontalAlignment="Left" Margin="10,159,0,0" VerticalAlignment="Top" Width="110" IsReadOnly="True" SelectedIndex="0">
+        <ComboBox x:Name="RegionComboBox" HorizontalAlignment="Left" Margin="10,159,0,0" VerticalAlignment="Top" Width="110" IsReadOnly="True" SelectedIndex="1">
             <ComboBoxItem Content="Japan"/>
             <ComboBoxItem Content="North America"/>
             <ComboBoxItem Content="Europe"/>
