@@ -87,5 +87,96 @@ namespace ACNESCreator.Core
             return bestMatch;
 
         }
+
+        /* Adapted from: https://gist.github.com/infval/18d65dd034290fb908f589dcc10c6d25 */
+        private static int FDSCRC(in byte[] data, int start, int end)
+        {
+            int s = 0x8000;
+
+            // Process each byte in the data array
+            for (; start < end; start++)
+            {
+                byte b = data[start];
+                s |= b << 16;
+                for (int i = 0; i < 8; i++)
+                {
+                    if ((s & 1) != 0)
+                    {
+                        s ^= 0x8408 << 1;
+                    }
+                    s >>= 1;
+                }
+            }
+
+            // Process two additional 0x00 bytes
+            for (int j = 0; j < 2; j++)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    if ((s & 1) != 0)
+                    {
+                        s ^= 0x8408 << 1;
+                    }
+                    s >>= 1;
+                }
+            }
+
+            return s;
+        }
+
+        private static void InsertCrc(in byte[] data, ref byte[] qdData, ref int qdWriteIdx, int start, int end)
+        {
+            int crc = FDSCRC(data, start, end);
+            qdData[qdWriteIdx++] = (byte)(crc & 0xFF);
+            qdData[qdWriteIdx++] = (byte)(crc >> 8);
+        }
+
+        public static byte[] ConvertFDSToQD(in byte[] disk)
+        {
+            int pos = 0;
+
+            if (Encoding.ASCII.GetString(disk, 0, 3) == "FDS")
+            {
+                pos = 16; // skip FDS added to the beginning
+            }
+
+            if (disk[pos] != 0x01)
+            {
+                return Array.Empty<byte>();
+            }
+
+            byte[] qdData = new byte[0x10000];
+            int qdWriteIdx = 0;
+
+            Buffer.BlockCopy(disk, pos, qdData, qdWriteIdx, 0x38);
+            qdWriteIdx += 0x38;
+            InsertCrc(disk, ref qdData, ref qdWriteIdx, pos, pos + 0x38);
+            Buffer.BlockCopy(disk, pos + 0x38, qdData, qdWriteIdx, 2);
+            qdWriteIdx += 2;
+            InsertCrc(disk, ref qdData, ref qdWriteIdx, pos + 0x38, pos + 0x3A);
+            pos += 0x3A;
+
+            try
+            {
+                while (disk[pos] == 3)
+                {
+                    int fileSize = (disk[pos + 0xD]) | (disk[pos + 0xE] << 8);
+                    Buffer.BlockCopy(disk, pos, qdData, qdWriteIdx, 0x10);
+                    qdWriteIdx += 0x10;
+                    InsertCrc(disk, ref qdData, ref qdWriteIdx, pos, pos + 0x10);
+                    pos += 0x10;
+                    Buffer.BlockCopy(disk, pos, qdData, qdWriteIdx, fileSize + 1);
+                    qdWriteIdx += fileSize + 1;
+                    InsertCrc(disk, ref qdData, ref qdWriteIdx, pos, pos + 1 + fileSize);
+                    pos += 1 + fileSize;
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return Array.Empty<byte>();
+            }
+
+            return qdData;
+        }
     }
 }

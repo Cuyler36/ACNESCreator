@@ -136,7 +136,7 @@ namespace ACNESCreator.CommandLine
 
                             using (tagsStream)
                             {
-                                NES nesFile = new NES(romName, File.ReadAllBytes(inputName), forceCompress,
+                                NES nesFile = new NES(romName, File.ReadAllBytes(inputName), Path.GetExtension(inputName), forceCompress,
                                     (Region)Array.IndexOf(RegionCodes, region), canSave, ePlus, null,
                                     tagsStream);
 

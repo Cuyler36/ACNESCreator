@@ -22,7 +22,7 @@ namespace ACNESCreator.FrontEnd
         readonly static string[] RegionCodes = new string[4] { "J", "E", "P", "U" };
         readonly OpenFileDialog SelectROMDialog = new OpenFileDialog
         {
-            Filter = "All Supported Files|*.nes;*.fds;*yaz0;*.bin|NES ROM Files|*.nes|Famicom Disk System Files|*.fds|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
+            Filter = "All Supported Files|*.nes;*.qd;*.fds;*yaz0;*.bin|NES ROM Files|*.nes|Famicom Disk System Files (QD)|*.qd|Famicom Disk System Files (FDS)|*.fds|Yaz0 Compressed Files|*.yaz0|Binary Files|*.bin|All Files|*.*"
         };
         readonly OpenFileDialog SelectIconImageDialog = new OpenFileDialog
         {
@@ -53,7 +53,7 @@ namespace ACNESCreator.FrontEnd
         public MainWindow()
         {
             InitializeComponent();
-            
+
             IconData = GCI.DefaultIconData;
             RefreshIconImage();
         }
@@ -128,7 +128,7 @@ namespace ACNESCreator.FrontEnd
                 NES NESFile = null;
                 try
                 {
-                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, HasSaveFile, ACRegion, Compress, DnMe, IconData); });
+                    await Task.Run(() => { NESFile = new NES(GameName, ROMData, Path.GetExtension(ROMLocation), HasSaveFile, ACRegion, Compress, DnMe, IconData); });
                 }
                 catch (Exception ex)
                 {
@@ -140,7 +140,7 @@ namespace ACNESCreator.FrontEnd
                     return;
                 }
 
-                if (!NESFile.IsROM && !NESFile.IsFDS && ACRegion == Region.NorthAmerica)
+                if (!NESFile.IsROM && !NESFile.IsFDS && !NESFile.IsQD && ACRegion == Region.NorthAmerica)
                 {
                     MessageBox.Show("Your file doesn't appear to be a NES ROM! It will be treated as a data patch, and will modify the game's memory instead!",
                         "ROM Info", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -168,7 +168,22 @@ namespace ACNESCreator.FrontEnd
                     return;
                 }
 
-                MessageBox.Show("The NES ROM was successfully injected! The file is located here:\r\n" + OutputLocation, "NES Save File Creation",
+                string msg;
+
+                if (NESFile.IsFDS)
+                {
+                    msg = $"The FDS ROM was successfully injected! Note that it was converted to QD format. The file is located here:\r\n{OutputLocation}";
+                }
+                else if (NESFile.IsQD || NESFile.IsROM)
+                {
+                    msg = $"The {(NESFile.IsQD ? "QD" : "NES")} ROM was successfully injected! The file is located here:\r\n{OutputLocation}";
+                }
+                else
+                {
+                    msg = $"The NES ROM was successfully injected! A rom type was unable to be determined, so it is assumed this is a ACE patch. The file is located here:\r\n{OutputLocation}";
+                }
+
+                MessageBox.Show(msg, "NES Save File Creation",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 InProgress = false;
             }
